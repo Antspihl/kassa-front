@@ -9,11 +9,12 @@ import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 
 // Composables
-import { createVuetify } from 'vuetify'
+import {createVuetify} from 'vuetify'
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
+    defaultTheme: 'dark',
     themes: {
       light: {
         colors: {
@@ -21,12 +22,12 @@ export default createVuetify({
           secondary: '#5CBBF6',
         },
       },
-      sov: {
+      dark: {
         colors: {
           primary: '#131C43',
           secondary: '#FFFFFF',
         }
-      }
+      },
     },
   },
 })
