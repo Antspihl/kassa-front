@@ -1,7 +1,7 @@
 <template>
-  <HelloWorld />
+  <Kassa/>
 </template>
 
 <script setup>
-  import HelloWorld from '@/components/HelloWorld.vue'
+import Kassa from '@/components/Kassa.vue'
 </script>

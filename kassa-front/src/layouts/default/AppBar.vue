@@ -1,10 +1,7 @@
 <template>
   <v-app-bar flat>
-    <v-app-bar-title>
-      <v-icon icon="mdi-circle-slice-4" />
-
-      Base Preset
-    </v-app-bar-title>
+      <v-img :max-height="64" :max-width="120" src="@/assets/sov_logo.png"/>
+        <h1>Soveldaja kassa</h1>
   </v-app-bar>
 </template>
 
