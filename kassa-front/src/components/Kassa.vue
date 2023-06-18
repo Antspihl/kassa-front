@@ -13,18 +13,16 @@ const state = reactive({
   ...initialState,
 })
 
-const items = [
-  'Item 1',
-  'Item 2',
-  'Item 3',
-  'Item 4',
-]
+const postUrl = "http://localhost:3000/orders"
+const names = []
+const drinks = []
 
 const rules = {
   name: {required, alpha},
   drink: {required, alpha},
   amount: {required, numeric, minValue: minValue(1)},
-  items: {required},
+  names: {required},
+  drinks: {required},
 }
 
 const v$ = useVuelidate(rules, state)
@@ -39,10 +37,11 @@ function clear() {
 </script>
 
 <template>
-  <v-theme-provider theme="sov" with-background="true">
-    <v-form>
+  <v-col>
+    <v-form class="mt-2">
       <v-autocomplete
         v-model="state.name"
+        :items="names"
         :error-messages="v$.name.$errors.map(e => e.$message)"
         :counter="10"
         label="Nimi"
@@ -53,6 +52,7 @@ function clear() {
 
       <v-autocomplete
         v-model="state.drink"
+        :items="drinks"
         :error-messages="v$.drink.$errors.map(e => e.$message)"
         label="Jook"
         required
@@ -60,29 +60,44 @@ function clear() {
         @blur="v$.drink.$touch"
       ></v-autocomplete>
 
-      <v-select
+      <v-text-field
         v-model="state.amount"
-        :items="items"
         :error-messages="v$.amount.$errors.map(e => e.$message)"
-        label="Item"
+        label="Kogus"
         required
         @change="v$.amount.$touch"
         @blur="v$.amount.$touch"
-      ></v-select>
+      ></v-text-field>
 
       <v-btn
         class="me-4"
         @click="v$.$validate"
       >
-        submit
+        Esita tellimus
       </v-btn>
       <v-btn @click="clear">
-        clear
+        Tühjenda
       </v-btn>
     </v-form>
-  </v-theme-provider>
-</template>
 
+    <v-file-input
+      chips
+      class="mt-8"
+      accept=".txt"
+      label="Lae nimede fail üles(.txt fail: nimi1, nimi2, nimi3)"
+    ></v-file-input>
+    <v-btn>Lae nimed sisse</v-btn>
+
+    <v-file-input
+      chips
+      class="mt-8"
+      accept=".txt"
+      label="Lae jookide fail üles(.txt fail: jook1, jook2, jook3)"
+    ></v-file-input>
+    <v-btn>Lae joogid sisse</v-btn>
+
+  </v-col>
+</template>
 
 <style scoped>
 
