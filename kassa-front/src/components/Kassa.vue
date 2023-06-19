@@ -1,7 +1,8 @@
 <script setup>
-import {reactive} from 'vue'
+import {reactive, ref} from 'vue'
 import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
+import axios from "axios";
 
 const Order = {
   name: "",
@@ -13,12 +14,15 @@ const state = reactive({
   ...Order,
 })
 
+const postUrl = "{{http://localhost:3000/orders}}"
+const timeout = 1000
 
-const postUrl = "http://localhost:3000/orders"
-let nameLoading = false
-let drinkLoading = false
-let names = [];
-let drinks = [];
+let isNameLoading = ref(false)
+let isDrinkLoading = ref(false)
+let namesFile = ref(null)
+let drinksFile = ref(null)
+let names = ref([])
+let drinks = ref([])
 
 const rules = {
   name: {required},
@@ -31,32 +35,78 @@ const rules = {
 const v$ = useVuelidate(rules, state)
 
 function loadNames() {
-  nameLoading = true
-  const namesFile = document.querySelector('input[type=file]').files[0]
-  const namesReader = new FileReader()
-  namesReader.readAsText(namesFile, "UTF-8")
-  namesReader.onload = function (evt) {
-    names = evt.target.result.split(",")
+  isNameLoading.value = true
+  console.log("Loading names")
+  console.log(namesFile)
+
+  if (namesFile === null) {
+    console.log("namesFile is null")
+  } else {
+    const namesFile = document.querySelector('input[type=file]').files[0]
+    const namesReader = new FileReader()
+    namesReader.readAsText(namesFile, "UTF-8")
+    namesReader.onload = function (evt) {
+      names = evt.target.result.split(",")
+      console.log("Names loaded")
+    }
+    namesReader.onerror = function () {
+      names = ["Vigane fail"]
+    }
   }
-  namesReader.onerror = function () {
-    names = ["Vigane fail"]
-  }
-  nameLoading = false
+  setTimeout(() => (isNameLoading.value = false), timeout)
 }
 
 function loadDrinks() {
-  drinkLoading = true
-  const drinksFile = document.querySelector('input[type=file]').files[0]
-  const drinksReader = new FileReader()
-  drinksReader.readAsText(drinksFile, "UTF-8")
-  drinksReader.onload = function (evt) {
-    drinks = evt.target.result.split(",")
+  isDrinkLoading.value = true
+  console.log("Loading drinks")
+  console.log(drinksFile)
+
+  if (drinksFile === null) {
+    console.log("drinksFile is null")
+  } else {
+    const drinksFile = document.querySelector('input[type=file]').files[0]
+    const drinksReader = new FileReader()
+    drinksReader.readAsText(drinksFile, "UTF-8")
+    drinksReader.onload = function (evt) {
+      drinks = evt.target.result.split(",")
+      console.log("Drinks loaded")
+    }
+    drinksReader.onerror = function () {
+      drinks = ["Vigane fail"]
+    }
   }
-  drinksReader.onerror = function (evt) {
-    drinks = ["Vigane fail"]
-  }
-  drinkLoading = false
+  setTimeout(() => (isDrinkLoading.value = false), timeout)
+
 }
+
+function emptyNames() {
+  isNameLoading.value = true
+  names.valueOf().splice(0)
+  setTimeout(() => (isNameLoading.value = false), timeout)
+}
+
+function emptyDrinks() {
+  isDrinkLoading.value = true
+  drinks.valueOf().splice(0)
+  setTimeout(() => (isDrinkLoading.value = false), timeout)
+}
+
+const submitOrder = () => {
+  clear()
+  const orderData = {
+    customer_name: Order.name,
+    drink_name: Order.drink,
+    quantity: Order.amount,
+  };
+
+  axios.post(postUrl, orderData)
+    .then(() => {
+      console.log('Order placed successfully');
+    })
+    .catch((error) => {
+      console.error('Error placing order:', error);
+    });
+};
 
 function clear() {
   v$.value.$reset()
@@ -101,7 +151,7 @@ function clear() {
 
       <v-btn
         class="me-4"
-        @click="v$.$validate"
+        @click="submitOrder"
       >
         Esita tellimus
       </v-btn>
@@ -111,27 +161,48 @@ function clear() {
     </v-form>
 
     <v-file-input
-      chips
       class="mt-8"
+      name="namesInput"
+      ref="namesFile"
       accept=".txt"
-      label="Lae nimede fail üles(.txt fail: nimi1,nimi2,nimi3)"
+      label="Lae nimede fail üles(.txt fail: asi1,asi2,asi3)"
     ></v-file-input>
+
     <v-btn
+      v-if="names.length === 0"
+      class="me-4"
       @click="loadNames"
-      :loading="nameLoading"
-    >Lae nimed sisse</v-btn>
-
-    <v-file-input
-      chips
-      class="mt-8"
-      accept=".txt"
-      label="Lae jookide fail üles(.txt fail: jook1,jook2,jook3)"
-    ></v-file-input>
+      :loading="isNameLoading"
+      :disabled="isNameLoading"
+    >Lae nimed sisse
+      <template v-slot:loader>
+        <v-progress-linear indeterminate color="cyan"></v-progress-linear>
+      </template>
+    </v-btn>
     <v-btn
-      @click="loadDrinks"
-      :loading="drinkLoading"
-    >Lae joogid sisse</v-btn>
+      v-if="names.length !== 0"
+      class="me-4"
+      @click="emptyNames"
+      color="error"
+      :loading="isNameLoading"
+      :disabled="isNameLoading"
+    >Tühjenda nimed
+    </v-btn>
 
+    <v-btn
+      v-if="drinks.length === 0"
+      @click="loadDrinks"
+      :loading="isDrinkLoading"
+      :disabled="isDrinkLoading"
+    >Lae joogid sisse
+    </v-btn>
+    <v-btn
+      v-if="drinks.length !== 0"
+      @click="emptyDrinks"
+      :loading="isDrinkLoading"
+      :disabled="isDrinkLoading"
+    >Tühjenda joogid
+    </v-btn>
   </v-col>
 </template>
 
