@@ -17,10 +17,10 @@ const state = reactive({
 const postUrl = "{{http://localhost:3000/orders}}"
 const timeout = 1000
 
+const isSubmitting = ref(false)
 const isNameLoading = ref(false)
 const isDrinkLoading = ref(false)
-const namesFile = ref(null)
-const drinksFile = ref(null)
+const file = ref(null)
 const names = ref([])
 const drinks = ref([])
 
@@ -37,9 +37,9 @@ const v$ = useVuelidate(rules, state)
 function loadNames() {
   isNameLoading.value = true
   console.log("Loading names")
-  console.log(namesFile)
+  console.log(file)
 
-  if (namesFile.value === null) {
+  if (file.value === null) {
     console.log("namesFile is null")
   } else {
     const namesFile = document.querySelector('input[type=file]').files[0]
@@ -59,9 +59,9 @@ function loadNames() {
 function loadDrinks() {
   isDrinkLoading.value = true
   console.log("Loading drinks")
-  console.log(drinksFile)
+  console.log(file)
 
-  if (drinksFile.value === null) {
+  if (file.value === null) {
     console.log("drinksFile is null")
   } else {
     const drinksFile = document.querySelector('input[type=file]').files[0]
@@ -92,6 +92,7 @@ function emptyDrinks() {
 }
 
 const submitOrder = () => {
+  isSubmitting.value = true
   clear()
   const orderData = {
     customer_name: Order.name,
@@ -106,6 +107,7 @@ const submitOrder = () => {
     .catch((error) => {
       console.error('Error placing order:', error);
     });
+  setTimeout(() => (isSubmitting.value = false), timeout)
 };
 
 function clear() {
@@ -151,19 +153,26 @@ function clear() {
 
       <v-btn
         class="me-4"
+        color="indigo-darken-4"
         @click="submitOrder"
-      >
+        >
         Esita tellimus
       </v-btn>
-      <v-btn @click="clear">
+      <v-btn
+        color="deep-orange-darken-4"
+        @click="clear"
+      >
         Tühjenda
       </v-btn>
     </v-form>
 
+    <v-expansion-panels class="mt-4">
+      <v-expansion-panel>
+        <v-expansion-panel-title>Lae info üles</v-expansion-panel-title>
+        <v-expansion-panel-text>
     <v-file-input
       class="mt-8"
-      name="namesInput"
-      ref="namesFile"
+      ref="file"
       accept=".txt"
       label="Lae nimede fail üles(.txt fail: asi1,asi2,asi3)"
     ></v-file-input>
@@ -172,40 +181,60 @@ function clear() {
       v-if="names.length === 0"
       class="me-4"
       @click="loadNames"
+      color="indigo-darken-4"
       :loading="isNameLoading"
       :disabled="isNameLoading"
     >Lae nimed sisse
       <template v-slot:loader>
-        <v-progress-linear indeterminate color="cyan"></v-progress-linear>
+        <v-progress-linear
+          indeterminate
+          color="deep-orange-darken-4"
+        ></v-progress-linear>
       </template>
     </v-btn>
     <v-btn
       v-if="names.length !== 0"
       class="me-4"
       @click="emptyNames"
-      color="error"
+      color="deep-orange-darken-4"
       :loading="isNameLoading"
       :disabled="isNameLoading"
     >Tühjenda nimed
       <template v-slot:loader>
-        <v-progress-linear indeterminate color="error"></v-progress-linear>
+        <v-progress-linear
+          indeterminate
+          color="cyan"
+        ></v-progress-linear>
       </template>
     </v-btn>
 
     <v-btn
       v-if="drinks.length === 0"
       @click="loadDrinks"
+      color="indigo-darken-4"
       :loading="isDrinkLoading"
       :disabled="isDrinkLoading"
     >Lae joogid sisse
+      <v-progress-linear
+        indeterminate
+        color="deep-orange-darken-4"
+      ></v-progress-linear>
     </v-btn>
     <v-btn
       v-if="drinks.length !== 0"
       @click="emptyDrinks"
+      color="deep-orange-darken-4"
       :loading="isDrinkLoading"
       :disabled="isDrinkLoading"
     >Tühjenda joogid
+      <v-progress-linear
+        indeterminate
+        color="cyan"
+      ></v-progress-linear>
     </v-btn>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
   </v-col>
 </template>
 
