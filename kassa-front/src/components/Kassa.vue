@@ -17,12 +17,12 @@ const state = reactive({
 const postUrl = "{{http://localhost:3000/orders}}"
 const timeout = 1000
 
-let isNameLoading = ref(false)
-let isDrinkLoading = ref(false)
-let namesFile = ref(null)
-let drinksFile = ref(null)
-let names = ref([])
-let drinks = ref([])
+const isNameLoading = ref(false)
+const isDrinkLoading = ref(false)
+const namesFile = ref(null)
+const drinksFile = ref(null)
+const names = ref([])
+const drinks = ref([])
 
 const rules = {
   name: {required},
@@ -39,18 +39,18 @@ function loadNames() {
   console.log("Loading names")
   console.log(namesFile)
 
-  if (namesFile === null) {
+  if (namesFile.value === null) {
     console.log("namesFile is null")
   } else {
     const namesFile = document.querySelector('input[type=file]').files[0]
     const namesReader = new FileReader()
     namesReader.readAsText(namesFile, "UTF-8")
     namesReader.onload = function (evt) {
-      names = evt.target.result.split(",")
+      names.value = evt.target.result.split(",")
       console.log("Names loaded")
     }
     namesReader.onerror = function () {
-      names = ["Vigane fail"]
+      names.value = ["Vigane fail"]
     }
   }
   setTimeout(() => (isNameLoading.value = false), timeout)
@@ -61,18 +61,18 @@ function loadDrinks() {
   console.log("Loading drinks")
   console.log(drinksFile)
 
-  if (drinksFile === null) {
+  if (drinksFile.value === null) {
     console.log("drinksFile is null")
   } else {
     const drinksFile = document.querySelector('input[type=file]').files[0]
     const drinksReader = new FileReader()
     drinksReader.readAsText(drinksFile, "UTF-8")
     drinksReader.onload = function (evt) {
-      drinks = evt.target.result.split(",")
+      drinks.value = evt.target.result.split(",")
       console.log("Drinks loaded")
     }
     drinksReader.onerror = function () {
-      drinks = ["Vigane fail"]
+      drinks.value = ["Vigane fail"]
     }
   }
   setTimeout(() => (isDrinkLoading.value = false), timeout)
@@ -81,13 +81,13 @@ function loadDrinks() {
 
 function emptyNames() {
   isNameLoading.value = true
-  names.valueOf().splice(0)
+  names.value = []
   setTimeout(() => (isNameLoading.value = false), timeout)
 }
 
 function emptyDrinks() {
   isDrinkLoading.value = true
-  drinks.valueOf().splice(0)
+  drinks.value = []
   setTimeout(() => (isDrinkLoading.value = false), timeout)
 }
 
@@ -187,6 +187,9 @@ function clear() {
       :loading="isNameLoading"
       :disabled="isNameLoading"
     >Tühjenda nimed
+      <template v-slot:loader>
+        <v-progress-linear indeterminate color="error"></v-progress-linear>
+      </template>
     </v-btn>
 
     <v-btn
