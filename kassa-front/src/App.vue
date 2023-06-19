@@ -2,6 +2,6 @@
   <router-view />
 </template>
 
-<script setup>
-  //
+<script>
+document.title = `Kassa`;
 </script>
