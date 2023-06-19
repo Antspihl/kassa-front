@@ -7,7 +7,7 @@ import axios from "axios";
 const Order = {
   name: "",
   drink: "",
-  amount: null,
+  amount: 1,
 }
 
 const state = reactive({
@@ -161,7 +161,13 @@ function clear() {
         @blur="v$.amount.$touch"
       ></v-text-field>
 
-      <v-btn
+      <v-btn-group shaped color="indigo-darken-4" class="d-flex mb-4">
+        <v-btn @click="state.amount--;" :disabled="state.amount === 1">-</v-btn>
+        <v-btn disabled @change="v$.amount.$touch">{{ state.amount }}</v-btn>
+        <v-btn @click="state.amount++">+</v-btn>
+      </v-btn-group>
+
+        <v-btn
         class="me-4"
         color="indigo-darken-4"
         @click="submitOrder"
