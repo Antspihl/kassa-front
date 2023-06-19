@@ -44,7 +44,11 @@ function loadNames() {
   } else {
     const namesFile = document.querySelector('input[type=file]').files[0]
     const namesReader = new FileReader()
-    namesReader.readAsText(namesFile, "UTF-8")
+    try {
+      namesReader.readAsText(namesFile, "UTF-8")
+    } catch (e) {
+      console.log(e)
+    }
     namesReader.onload = function (evt) {
       names.value = evt.target.result.split(",")
       console.log("Names loaded")
@@ -66,7 +70,11 @@ function loadDrinks() {
   } else {
     const drinksFile = document.querySelector('input[type=file]').files[0]
     const drinksReader = new FileReader()
-    drinksReader.readAsText(drinksFile, "UTF-8")
+    try {
+      drinksReader.readAsText(drinksFile, "UTF-8")
+    } catch (e) {
+      console.log(e)
+    }
     drinksReader.onload = function (evt) {
       drinks.value = evt.target.result.split(",")
       console.log("Drinks loaded")
@@ -83,12 +91,14 @@ function emptyNames() {
   isNameLoading.value = true
   names.value = []
   setTimeout(() => (isNameLoading.value = false), timeout)
+  console.log("Emptying names")
 }
 
 function emptyDrinks() {
   isDrinkLoading.value = true
   drinks.value = []
   setTimeout(() => (isDrinkLoading.value = false), timeout)
+  console.log("Emptying drinks")
 }
 
 const submitOrder = () => {
@@ -155,7 +165,7 @@ function clear() {
         class="me-4"
         color="indigo-darken-4"
         @click="submitOrder"
-        >
+      >
         Esita tellimus
       </v-btn>
       <v-btn
@@ -170,68 +180,68 @@ function clear() {
       <v-expansion-panel>
         <v-expansion-panel-title>Lae info üles</v-expansion-panel-title>
         <v-expansion-panel-text>
-    <v-file-input
-      class="mt-8"
-      ref="file"
-      accept=".txt"
-      label="Lae nimede fail üles(.txt fail: asi1,asi2,asi3)"
-    ></v-file-input>
+          <v-file-input
+            class="mt-8"
+            ref="file"
+            accept=".txt"
+            label="Lae nimede fail üles(.txt fail: asi1,asi2,asi3)"
+          ></v-file-input>
 
-    <v-btn
-      v-if="names.length === 0"
-      class="me-4"
-      @click="loadNames"
-      color="indigo-darken-4"
-      :loading="isNameLoading"
-      :disabled="isNameLoading"
-    >Lae nimed sisse
-      <template v-slot:loader>
-        <v-progress-linear
-          indeterminate
-          color="deep-orange-darken-4"
-        ></v-progress-linear>
-      </template>
-    </v-btn>
-    <v-btn
-      v-if="names.length !== 0"
-      class="me-4"
-      @click="emptyNames"
-      color="deep-orange-darken-4"
-      :loading="isNameLoading"
-      :disabled="isNameLoading"
-    >Tühjenda nimed
-      <template v-slot:loader>
-        <v-progress-linear
-          indeterminate
-          color="cyan"
-        ></v-progress-linear>
-      </template>
-    </v-btn>
+          <v-btn
+            v-if="names.length === 0"
+            class="me-4 ml-10"
+            @click="loadNames"
+            color="indigo-darken-4"
+            :loading="isNameLoading"
+            :disabled="isNameLoading"
+          >Lae nimed sisse
+            <template v-slot:loader>
+              <v-progress-linear
+                indeterminate
+                color="deep-orange-darken-4"
+              ></v-progress-linear>
+            </template>
+          </v-btn>
+          <v-btn
+            v-if="names.length !== 0"
+            class="me-4 ml-10"
+            @click="emptyNames"
+            color="deep-orange-darken-4"
+            :loading="isNameLoading"
+            :disabled="isNameLoading"
+          >Tühjenda nimed
+            <template v-slot:loader>
+              <v-progress-linear
+                indeterminate
+                color="indigo-darken-4"
+              ></v-progress-linear>
+            </template>
+          </v-btn>
 
-    <v-btn
-      v-if="drinks.length === 0"
-      @click="loadDrinks"
-      color="indigo-darken-4"
-      :loading="isDrinkLoading"
-      :disabled="isDrinkLoading"
-    >Lae joogid sisse
-      <v-progress-linear
-        indeterminate
-        color="deep-orange-darken-4"
-      ></v-progress-linear>
-    </v-btn>
-    <v-btn
-      v-if="drinks.length !== 0"
-      @click="emptyDrinks"
-      color="deep-orange-darken-4"
-      :loading="isDrinkLoading"
-      :disabled="isDrinkLoading"
-    >Tühjenda joogid
-      <v-progress-linear
-        indeterminate
-        color="cyan"
-      ></v-progress-linear>
-    </v-btn>
+          <v-btn
+            v-if="drinks.length === 0"
+            @click="loadDrinks"
+            color="indigo-darken-4"
+            :loading="isDrinkLoading"
+            :disabled="isDrinkLoading"
+          >Lae joogid sisse
+            <v-progress-linear
+              indeterminate
+              color="deep-orange-darken-4"
+            ></v-progress-linear>
+          </v-btn>
+          <v-btn
+            v-if="drinks.length !== 0"
+            @click="emptyDrinks"
+            color="deep-orange-darken-4"
+            :loading="isDrinkLoading"
+            :disabled="isDrinkLoading"
+          >Tühjenda joogid
+            <v-progress-linear
+              indeterminate
+              color="indigo-darken-4"
+            ></v-progress-linear>
+          </v-btn>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
