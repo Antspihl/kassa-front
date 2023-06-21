@@ -3,6 +3,8 @@ import {onMounted, reactive, ref} from 'vue'
 import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
 import axios from "axios";
+import {useToast} from "vue-toastification";
+import CancelOrder from "./CancelOrder.vue";
 
 const Order = {
   name: "",
@@ -10,9 +12,13 @@ const Order = {
   amount: 1,
 }
 
-const state = reactive({
-  ...Order,
+const previousOrder = ref({
+  name: "",
+  drink: "",
+  amount: 0,
 })
+
+const state = reactive({...Order})
 
 const postUrl = "http://localhost:5000/order"
 const namesUrl = "http://localhost:5000/names"
@@ -24,6 +30,7 @@ const names = ref([])
 const drinks = ref([])
 const isFetchingNames = ref(true)
 const isFetchingDrinks = ref(true)
+const toast = useToast()
 
 const rules = {
   name: {required},
@@ -35,6 +42,53 @@ const rules = {
 
 const v$ = useVuelidate(rules, state)
 
+const showToast = () => {
+  toast.error({
+    component: CancelOrder,
+    listeners: {
+      myClick: () => {
+        cancelLastOrder(previousOrder.value.name, previousOrder.value.drink, previousOrder.value.amount)
+      }
+    }
+  }, {
+    position: "bottom-left",
+    timeout: 5000,
+    closeOnClick: true,
+    pauseOnFocusLoss: true,
+    pauseOnHover: true,
+    draggable: false,
+    draggablePercent: 0.6,
+    showCloseButtonOnHover: true,
+    hideProgressBar: false,
+    closeButton: "button",
+    icon: true,
+    rtl: false
+  });
+}
+
+const cancelLastOrder = (name, drink, amount) => {
+  if (previousOrder.value.name === "") {
+    return
+  }
+  console.log("Canceling order", name, " ", drink, " ", amount)
+  const orderData = {
+    customer_name: name,
+    drink_name: drink,
+    quantity: -amount,
+  };
+
+  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+  axios.post(postUrl, orderData)
+    .then(() => {
+      console.log(orderData, ' canceled successfully');
+    })
+    .catch((error) => {
+      console.error('Error canceling order:', error);
+    });
+
+  previousOrder.value.name = ""
+}
+
 const submitOrder = () => {
   if (isFetchingNames.value || isFetchingDrinks.value || state.name === "" || state.drink === "") {
     return
@@ -45,16 +99,22 @@ const submitOrder = () => {
     drink_name: state.drink,
     quantity: state.amount,
   };
+  // Remember previous order
+  previousOrder.value.name = state.name
+  previousOrder.value.drink = state.drink
+  previousOrder.value.amount = state.amount
 
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
     .then(() => {
       console.log(orderData, ' placed successfully');
+      showToast()
     })
     .catch((error) => {
       console.error('Error placing order:', error);
     });
   setTimeout(() => (isSubmitting.value = false), timeout)
+  clear()
 };
 
 function clear() {
@@ -66,6 +126,7 @@ function clear() {
 }
 
 const getNames = () => {
+  console.log("Fetching names")
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.get(namesUrl)
     .then((response) => {
@@ -80,6 +141,7 @@ const getNames = () => {
 };
 
 const getDrinks = () => {
+  console.log("Fetching drinks")
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.get(drinksUrl)
     .then((response) => {
@@ -149,6 +211,11 @@ onMounted(() => {
         @click="clear"
       >
         Tühjenda
+      </v-btn>
+      <v-btn
+      @click=showToast()
+      >
+        test
       </v-btn>
     </v-form>
   </v-col>
