@@ -23,7 +23,6 @@ const state = reactive({...Order})
 const postUrl = "http://localhost:5000/order"
 const namesUrl = "http://localhost:5000/names"
 const drinksUrl = "http://localhost:5000/drinks"
-const timeout = 1000
 
 const isSubmitting = ref(false)
 const names = ref([])
@@ -42,7 +41,7 @@ const rules = {
 
 const v$ = useVuelidate(rules, state)
 
-const showToast = () => {
+const showCancelingToast = () => {
   toast.error({
     component: CancelOrder,
     listeners: {
@@ -64,6 +63,24 @@ const showToast = () => {
     icon: true,
     rtl: false
   });
+  isSubmitting.value = false
+}
+
+const showSuccessToast = () => {
+  toast.success("Viimane tellimus tühistatud", {
+    position: "bottom-left",
+    timeout: 3000,
+    closeOnClick: false,
+    pauseOnFocusLoss: true,
+    pauseOnHover: true,
+    draggable: false,
+    draggablePercent: 0.6,
+    showCloseButtonOnHover: true,
+    hideProgressBar: true,
+    closeButton: "button",
+    icon: true,
+    rtl: false
+  });
 }
 
 const cancelLastOrder = (name, drink, amount) => {
@@ -81,6 +98,7 @@ const cancelLastOrder = (name, drink, amount) => {
   axios.post(postUrl, orderData)
     .then(() => {
       console.log(orderData, ' canceled successfully');
+      showSuccessToast()
     })
     .catch((error) => {
       console.error('Error canceling order:', error);
@@ -108,12 +126,11 @@ const submitOrder = () => {
   axios.post(postUrl, orderData)
     .then(() => {
       console.log(orderData, ' placed successfully');
-      showToast()
+      showCancelingToast()
     })
     .catch((error) => {
       console.error('Error placing order:', error);
     });
-  setTimeout(() => (isSubmitting.value = false), timeout)
   clear()
 };
 
@@ -165,6 +182,7 @@ onMounted(() => {
   <v-col>
     <v-form class="mt-2">
       <v-autocomplete
+        :disabled="isFetchingNames"
         v-model="state.name"
         :items="names"
         :error-messages="v$.name.$errors.map(e => e.$message)"
@@ -175,6 +193,7 @@ onMounted(() => {
       ></v-autocomplete>
 
       <v-autocomplete
+        :disabled="isFetchingDrinks"
         v-model="state.drink"
         :items="drinks"
         :error-messages="v$.drink.$errors.map(e => e.$message)"
@@ -199,7 +218,9 @@ onMounted(() => {
         <v-btn @click="state.amount++">+</v-btn>
       </v-btn-group>
 
-        <v-btn
+      <v-btn
+        :disabled="isSubmitting"
+        :loading="isSubmitting"
         class="me-4"
         color="indigo-darken-4"
         @click="submitOrder"
@@ -211,11 +232,6 @@ onMounted(() => {
         @click="clear"
       >
         Tühjenda
-      </v-btn>
-      <v-btn
-      @click=showToast()
-      >
-        test
       </v-btn>
     </v-form>
   </v-col>
