@@ -150,12 +150,6 @@ onMounted(() => {
       >
         Tühjenda
       </v-btn>
-
-      <v-btn
-      @click="console.log(Order)"
-      >
-        Test
-      </v-btn>
     </v-form>
   </v-col>
 </template>
