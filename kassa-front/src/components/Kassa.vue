@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref} from 'vue'
+import {onMounted, reactive, ref} from 'vue'
 import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
 import axios from "axios";
@@ -15,14 +15,15 @@ const state = reactive({
 })
 
 const postUrl = "http://localhost:5000/order"
+const namesUrl = "http://localhost:5000/names"
+const drinksUrl = "http://localhost:5000/drinks"
 const timeout = 1000
 
 const isSubmitting = ref(false)
-const isNameLoading = ref(false)
-const isDrinkLoading = ref(false)
-const file = ref(null)
 const names = ref([])
 const drinks = ref([])
+const isFetchingNames = ref(true)
+const isFetchingDrinks = ref(true)
 
 const rules = {
   name: {required},
@@ -34,86 +35,21 @@ const rules = {
 
 const v$ = useVuelidate(rules, state)
 
-function loadNames() {
-  isNameLoading.value = true
-  console.log("Loading names")
-  console.log(file)
-
-  if (file.value === null) {
-    console.log("namesFile is null")
-  } else {
-    const namesFile = document.querySelector('input[type=file]').files[0]
-    const namesReader = new FileReader()
-    try {
-      namesReader.readAsText(namesFile, "UTF-8")
-    } catch (e) {
-      console.log(e)
-    }
-    namesReader.onload = function (evt) {
-      names.value = evt.target.result.split(",")
-      console.log("Names loaded")
-    }
-    namesReader.onerror = function () {
-      names.value = ["Vigane fail"]
-    }
-  }
-  setTimeout(() => (isNameLoading.value = false), timeout)
-}
-
-function loadDrinks() {
-  isDrinkLoading.value = true
-  console.log("Loading drinks")
-  console.log(file)
-
-  if (file.value === null) {
-    console.log("drinksFile is null")
-  } else {
-    const drinksFile = document.querySelector('input[type=file]').files[0]
-    const drinksReader = new FileReader()
-    try {
-      drinksReader.readAsText(drinksFile, "UTF-8")
-    } catch (e) {
-      console.log(e)
-    }
-    drinksReader.onload = function (evt) {
-      drinks.value = evt.target.result.split(",")
-      console.log("Drinks loaded")
-    }
-    drinksReader.onerror = function () {
-      drinks.value = ["Vigane fail"]
-    }
-  }
-  setTimeout(() => (isDrinkLoading.value = false), timeout)
-
-}
-
-function emptyNames() {
-  isNameLoading.value = true
-  names.value = []
-  setTimeout(() => (isNameLoading.value = false), timeout)
-  console.log("Emptying names")
-}
-
-function emptyDrinks() {
-  isDrinkLoading.value = true
-  drinks.value = []
-  setTimeout(() => (isDrinkLoading.value = false), timeout)
-  console.log("Emptying drinks")
-}
-
 const submitOrder = () => {
+  if (isFetchingNames.value || isFetchingDrinks.value || state.name === "" || state.drink === "") {
+    return
+  }
   isSubmitting.value = true
-  clear()
   const orderData = {
-    customer_name: Order.name,
-    drink_name: Order.drink,
-    quantity: Order.amount,
+    customer_name: state.name,
+    drink_name: state.drink,
+    quantity: state.amount,
   };
 
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
     .then(() => {
-      console.log('Order placed successfully');
+      console.log(orderData, ' placed successfully');
     })
     .catch((error) => {
       console.error('Error placing order:', error);
@@ -128,6 +64,39 @@ function clear() {
     state[key] = value
   }
 }
+
+const getNames = () => {
+  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+  axios.get(namesUrl)
+    .then((response) => {
+      console.log('Names received successfully');
+      console.log(response.data)
+      names.value = response.data;
+      isFetchingNames.value = false;
+    })
+    .catch((error) => {
+      console.error('Error receiving names:', error);
+    });
+};
+
+const getDrinks = () => {
+  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+  axios.get(drinksUrl)
+    .then((response) => {
+      console.log('Drinks received successfully');
+      console.log(response.data)
+      drinks.value = response.data;
+      isFetchingDrinks.value = false;
+    })
+    .catch((error) => {
+      console.error('Error receiving drinks:', error);
+    });
+};
+
+onMounted(() => {
+  getNames();
+  getDrinks();
+});
 </script>
 
 <template>
@@ -181,77 +150,13 @@ function clear() {
       >
         Tühjenda
       </v-btn>
+
+      <v-btn
+      @click="console.log(Order)"
+      >
+        Test
+      </v-btn>
     </v-form>
-
-    <v-expansion-panels class="mt-4">
-      <v-expansion-panel>
-        <v-expansion-panel-title>Lae info üles</v-expansion-panel-title>
-        <v-expansion-panel-text>
-          <v-file-input
-            class="mt-8"
-            ref="file"
-            accept=".txt"
-            label="Lae nimede fail üles(.txt fail: asi1,asi2,asi3)"
-          ></v-file-input>
-
-          <v-btn
-            v-if="names.length === 0"
-            class="me-4 ml-10"
-            @click="loadNames"
-            color="indigo-darken-4"
-            :loading="isNameLoading"
-            :disabled="isNameLoading"
-          >Lae nimed sisse
-            <template v-slot:loader>
-              <v-progress-linear
-                indeterminate
-                color="deep-orange-darken-4"
-              ></v-progress-linear>
-            </template>
-          </v-btn>
-          <v-btn
-            v-if="names.length !== 0"
-            class="me-4 ml-10"
-            @click="emptyNames"
-            color="deep-orange-darken-4"
-            :loading="isNameLoading"
-            :disabled="isNameLoading"
-          >Tühjenda nimed
-            <template v-slot:loader>
-              <v-progress-linear
-                indeterminate
-                color="indigo-darken-4"
-              ></v-progress-linear>
-            </template>
-          </v-btn>
-
-          <v-btn
-            v-if="drinks.length === 0"
-            @click="loadDrinks"
-            color="indigo-darken-4"
-            :loading="isDrinkLoading"
-            :disabled="isDrinkLoading"
-          >Lae joogid sisse
-            <v-progress-linear
-              indeterminate
-              color="deep-orange-darken-4"
-            ></v-progress-linear>
-          </v-btn>
-          <v-btn
-            v-if="drinks.length !== 0"
-            @click="emptyDrinks"
-            color="deep-orange-darken-4"
-            :loading="isDrinkLoading"
-            :disabled="isDrinkLoading"
-          >Tühjenda joogid
-            <v-progress-linear
-              indeterminate
-              color="indigo-darken-4"
-            ></v-progress-linear>
-          </v-btn>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
   </v-col>
 </template>
 
