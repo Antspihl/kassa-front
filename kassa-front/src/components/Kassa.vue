@@ -14,7 +14,7 @@ const state = reactive({
   ...Order,
 })
 
-const postUrl = "{{http://localhost:3000/orders}}"
+const postUrl = "http://localhost:5000/order"
 const timeout = 1000
 
 const isSubmitting = ref(false)
@@ -110,6 +110,7 @@ const submitOrder = () => {
     quantity: Order.amount,
   };
 
+  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
     .then(() => {
       console.log('Order placed successfully');
