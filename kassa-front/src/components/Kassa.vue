@@ -4,7 +4,6 @@ import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
 import axios from "axios";
 import {useToast} from "vue-toastification";
-import CancelOrder from "./CancelOrder.vue";
 
 const Order = {
   name: "",
@@ -12,11 +11,7 @@ const Order = {
   amount: 1,
 }
 
-const previousOrder = ref({
-  name: "",
-  drink: "",
-  amount: 0,
-})
+const previousOrders = ref([])
 
 const state = reactive({...Order})
 
@@ -41,18 +36,11 @@ const rules = {
 
 const v$ = useVuelidate(rules, state)
 
-const showCancelingToast = () => {
-  toast.error({
-    component: CancelOrder,
-    listeners: {
-      myClick: () => {
-        cancelLastOrder(previousOrder.value.name, previousOrder.value.drink, previousOrder.value.amount)
-      }
-    }
-  }, {
-    position: "bottom-left",
-    timeout: 5000,
-    closeOnClick: true,
+const showSuccessToast = (text) => {
+  toast.success(text, {
+    position: "bottom-right",
+    timeout: 3000,
+    closeOnClick: false,
     pauseOnFocusLoss: true,
     pauseOnHover: true,
     draggable: false,
@@ -66,9 +54,9 @@ const showCancelingToast = () => {
   isSubmitting.value = false
 }
 
-const showSuccessToast = () => {
-  toast.success("Viimane tellimus tühistatud", {
-    position: "bottom-left",
+const showErrorToast = (text) => {
+  toast.error(text, {
+    position: "bottom-right",
     timeout: 3000,
     closeOnClick: false,
     pauseOnFocusLoss: true,
@@ -81,12 +69,11 @@ const showSuccessToast = () => {
     icon: true,
     rtl: false
   });
+  isSubmitting.value = false
 }
 
-const cancelLastOrder = (name, drink, amount) => {
-  if (previousOrder.value.name === "") {
-    return
-  }
+const cancelOrder = (name, drink, amount) => {
+  isSubmitting.value = true
   console.log("Canceling order", name, " ", drink, " ", amount)
   const orderData = {
     customer_name: name,
@@ -94,17 +81,19 @@ const cancelLastOrder = (name, drink, amount) => {
     quantity: -amount,
   };
 
+  //Remove order from previous orders
+  previousOrders.value = previousOrders.value.filter(order => order.name !== name || order.drink !== drink || order.amount !== amount)
+
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
     .then(() => {
       console.log(orderData, ' canceled successfully');
-      showSuccessToast()
+      showSuccessToast("Tellimus tühistatud")
     })
     .catch((error) => {
       console.error('Error canceling order:', error);
+      showErrorToast("Tellimuse tühistamine ebaõnnestus")
     });
-
-  previousOrder.value.name = ""
 }
 
 const submitOrder = () => {
@@ -117,19 +106,18 @@ const submitOrder = () => {
     drink_name: state.drink,
     quantity: state.amount,
   };
-  // Remember previous order
-  previousOrder.value.name = state.name
-  previousOrder.value.drink = state.drink
-  previousOrder.value.amount = state.amount
+
+  rememberOrder(state.name, state.drink, state.amount)
 
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
     .then(() => {
       console.log(orderData, ' placed successfully');
-      showCancelingToast()
+      showSuccessToast("Tellimus esitatud")
     })
     .catch((error) => {
       console.error('Error placing order:', error);
+      showErrorToast("Tellimuse esitamine ebaõnnestus")
     });
   clear()
 };
@@ -142,19 +130,31 @@ function clear() {
   }
 }
 
+function rememberOrder(name, drink, amount) {
+  previousOrders.value.unshift({name: name, drink: drink, amount: amount})
+  if (previousOrders.value.length > 4) {
+    previousOrders.value.pop()
+  }
+}
+
 const getNames = () => {
   console.log("Fetching names")
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.get(namesUrl)
     .then((response) => {
-      console.log('Names received successfully');
+      showSuccessToast("Nimed laetud")
       console.log(response.data)
       names.value = response.data;
       isFetchingNames.value = false;
     })
     .catch((error) => {
       console.error('Error receiving names:', error);
+      showErrorToast("Nimede laadimine ebaõnnestus")
     });
+
+  if (names.value === []) {
+    getNames()
+  }
 };
 
 const getDrinks = () => {
@@ -162,14 +162,19 @@ const getDrinks = () => {
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.get(drinksUrl)
     .then((response) => {
-      console.log('Drinks received successfully');
+      showSuccessToast("Joogid laetud")
       console.log(response.data)
       drinks.value = response.data;
       isFetchingDrinks.value = false;
     })
     .catch((error) => {
       console.error('Error receiving drinks:', error);
+      showErrorToast("Jookide laadimine ebaõnnestus")
     });
+
+  if (drinks.value === []) {
+    getDrinks()
+  }
 };
 
 onMounted(() => {
@@ -214,7 +219,7 @@ onMounted(() => {
 
       <v-btn-group shaped color="indigo-darken-4" class="d-flex mb-4">
         <v-btn @click="state.amount--;" :disabled="state.amount === 1">-</v-btn>
-        <v-btn disabled @change="v$.amount.$touch">{{ state.amount }}</v-btn>
+        <v-btn :disabled=true @change="v$.amount.$touch">{{ state.amount }}</v-btn>
         <v-btn @click="state.amount++">+</v-btn>
       </v-btn-group>
 
@@ -234,6 +239,45 @@ onMounted(() => {
         Tühjenda
       </v-btn>
     </v-form>
+  </v-col>
+
+  <v-col>
+    <v-table>
+      <thead>
+      <tr>
+        <th class="text-left">
+          Nimi
+        </th>
+        <th class="text-left">
+          Jook
+        </th>
+        <th class="text-left">
+          Kogus
+        </th>
+        <th class="text-left">
+          Kas tühistada?
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr
+        v-for="item in previousOrders.values()"
+      >
+        <td>{{ item.name }}</td>
+        <td>{{ item.drink }}</td>
+        <td>{{ item.amount }}</td>
+        <v-btn
+          @click="cancelOrder(item.name, item.drink, item.amount)"
+          color="deep-orange-darken-4"
+          class="mt-2"
+          :disabled="isSubmitting"
+          :loading="isSubmitting"
+        >
+          Tühista tellimus
+        </v-btn>
+      </tr>
+      </tbody>
+    </v-table>
   </v-col>
 </template>
 
