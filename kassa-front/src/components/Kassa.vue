@@ -137,43 +137,33 @@ function rememberOrder(name, drink, amount) {
   }
 }
 
-const getNames = () => {
-  console.log("Fetching names")
-  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-  axios.get(namesUrl)
-    .then((response) => {
-      showSuccessToast("Nimed laetud")
-      console.log(response.data)
-      names.value = response.data;
-      isFetchingNames.value = false;
-    })
-    .catch((error) => {
-      console.error('Error receiving names:', error);
-      showErrorToast("Nimede laadimine ebaõnnestus")
-    });
-
-  if (names.value === []) {
-    getNames()
+const getNames = async () => {
+  try {
+    console.log("Fetching names");
+    const response = await axios.get(namesUrl);
+    showSuccessToast("Nimed laetud");
+    console.log(response.data);
+    names.value = response.data;
+    isFetchingNames.value = false;
+  } catch (error) {
+    console.error('Error receiving names:', error);
+    showErrorToast("Nimede laadimine ebaõnnestus");
+    getNames();
   }
 };
 
-const getDrinks = () => {
-  console.log("Fetching drinks")
-  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-  axios.get(drinksUrl)
-    .then((response) => {
-      showSuccessToast("Joogid laetud")
-      console.log(response.data)
-      drinks.value = response.data;
-      isFetchingDrinks.value = false;
-    })
-    .catch((error) => {
-      console.error('Error receiving drinks:', error);
-      showErrorToast("Jookide laadimine ebaõnnestus")
-    });
-
-  if (drinks.value === []) {
-    getDrinks()
+const getDrinks = async () => {
+  try {
+    console.log("Fetching drinks");
+    const response = await axios.get(drinksUrl);
+    showSuccessToast("Joogid laetud");
+    console.log(response.data);
+    drinks.value = response.data;
+    isFetchingDrinks.value = false;
+  } catch (error) {
+    console.error('Error receiving drinks:', error);
+    showErrorToast("Jookide laadimine ebaõnnestus");
+    getDrinks();
   }
 };
 
