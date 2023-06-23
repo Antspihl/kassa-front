@@ -137,7 +137,7 @@ function rememberOrder(name, drink, amount) {
   }
 }
 
-const getNames = async () => {
+const getNames = async (reFetchTimeout) => {
   try {
     console.log("Fetching names");
     const response = await axios.get(namesUrl);
@@ -148,11 +148,11 @@ const getNames = async () => {
   } catch (error) {
     console.error('Error receiving names:', error);
     showErrorToast("Nimede laadimine ebaõnnestus");
-    getNames();
+    getNames(reFetchTimeout * 1.5);
   }
 };
 
-const getDrinks = async () => {
+const getDrinks = async (reFetchTimeout) => {
   try {
     console.log("Fetching drinks");
     const response = await axios.get(drinksUrl);
@@ -163,13 +163,13 @@ const getDrinks = async () => {
   } catch (error) {
     console.error('Error receiving drinks:', error);
     showErrorToast("Jookide laadimine ebaõnnestus");
-    getDrinks();
+    getDrinks(reFetchTimeout * 1.5)
   }
 };
 
 onMounted(() => {
-  getNames();
-  getDrinks();
+  getNames(1000);
+  getDrinks(1000);
 });
 </script>
 
