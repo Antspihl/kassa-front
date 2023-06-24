@@ -64,7 +64,7 @@ const showErrorToast = (text) => {
     draggable: false,
     draggablePercent: 0.6,
     showCloseButtonOnHover: true,
-    hideProgressBar: true,
+    hideProgressBar: false,
     closeButton: "button",
     icon: true,
     rtl: false
@@ -82,7 +82,9 @@ const cancelOrder = (name, drink, amount) => {
   };
 
   //Remove order from previous orders
-  previousOrders.value = previousOrders.value.filter(order => order.name !== name || order.drink !== drink || order.amount !== amount)
+  setTimeout(() => {
+    previousOrders.value = previousOrders.value.filter(order => order.name !== name || order.drink !== drink || order.amount !== amount)
+  }, 3000)
 
   axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
   axios.post(postUrl, orderData)
@@ -148,7 +150,9 @@ const getNames = async (reFetchTimeout) => {
   } catch (error) {
     console.error('Error receiving names:', error);
     showErrorToast("Nimede laadimine ebaõnnestus");
-    getNames(reFetchTimeout * 1.5);
+    setTimeout(() => {
+      getNames(reFetchTimeout * 1.5)
+    }, reFetchTimeout)
   }
 };
 
@@ -163,7 +167,9 @@ const getDrinks = async (reFetchTimeout) => {
   } catch (error) {
     console.error('Error receiving drinks:', error);
     showErrorToast("Jookide laadimine ebaõnnestus");
-    getDrinks(reFetchTimeout * 1.5)
+    setTimeout(() => {
+      getDrinks(reFetchTimeout * 1.5)
+    }, reFetchTimeout)
   }
 };
 
@@ -231,44 +237,30 @@ onMounted(() => {
     </v-form>
   </v-col>
 
-  <v-col>
-    <v-table>
-      <thead>
-      <tr>
-        <th class="text-left">
-          Nimi
-        </th>
-        <th class="text-left">
-          Jook
-        </th>
-        <th class="text-left">
-          Kogus
-        </th>
-        <th class="text-left">
-          Kas tühistada?
-        </th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr
-        v-for="item in previousOrders.values()"
+  <v-card>
+    <v-card-title>Eelnevad tellimused</v-card-title>
+    <v-list>
+      <v-list-item
+        v-for="(order, index) in previousOrders"
+        :key="index"
+        :value="order"
+        rounded="shaped"
       >
-        <td>{{ item.name }}</td>
-        <td>{{ item.drink }}</td>
-        <td>{{ item.amount }}</td>
-        <v-btn
-          @click="cancelOrder(item.name, item.drink, item.amount)"
-          color="deep-orange-darken-4"
-          class="mt-2"
-          :disabled="isSubmitting"
-          :loading="isSubmitting"
-        >
-          Tühista tellimus
-        </v-btn>
-      </tr>
-      </tbody>
-    </v-table>
-  </v-col>
+        <v-list-item-action>
+          {{ order.name }}: {{ order.amount }}x {{ order.drink }}
+          <v-btn
+            color="deep-orange-darken-4"
+            @click="cancelOrder(order.name, order.drink, order.amount)"
+            class="ml-16"
+            :loading="isSubmitting"
+            :disabled="isSubmitting"
+          >
+            Tühista
+          </v-btn>
+        </v-list-item-action>
+      </v-list-item>
+    </v-list>
+  </v-card>
 </template>
 
 <style scoped>
