@@ -230,6 +230,7 @@ onMounted(() => {
       </v-btn>
       <v-btn
         color="deep-orange-darken-4"
+        :disabled="state.drink === '' && state.name === ''"
         @click="clear"
       >
         Tühjenda
