@@ -99,7 +99,8 @@ const cancelOrder = (name, drink, amount) => {
 }
 
 const submitOrder = () => {
-  if (isFetchingNames.value || isFetchingDrinks.value || state.name === "" || state.drink === "") {
+  v$.value.$touch()
+  if (state.name === "" || state.drink === "" || isNaN(state.amount)) {
     return
   }
   isSubmitting.value = true
