@@ -269,11 +269,6 @@ onMounted(() => {
         >
           Tühjenda
         </v-btn>
-        <v-btn
-          @click="reset"
-        >
-          Reset
-        </v-btn>
       </v-btn-group>
       <v-dialog v-model="dialogOpen" max-width="500px">
         <v-card>
