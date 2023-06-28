@@ -4,6 +4,7 @@ import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
 import axios from "axios";
 import {useToast} from "vue-toastification";
+import {forEach} from "core-js/stable/dom-collections";
 
 const Order = {
   name: "",
@@ -12,6 +13,7 @@ const Order = {
 }
 
 const previousOrders = ref([])
+const currentOrders = ref([])
 
 const state = reactive({...Order})
 
@@ -30,9 +32,23 @@ const rules = {
   name: {required},
   drink: {required},
   amount: {required, numeric, minValue: minValue(1)},
-  names: {required},
-  drinks: {required},
 }
+
+const dialogOpen = ref(false);
+
+const openDialog = () => {
+  dialogOpen.value = true;
+};
+
+const closeDialog = () => {
+  dialogOpen.value = false;
+};
+
+const saveOrder = () => {
+  v$.value.$touch()
+  dialogOpen.value = false;
+  currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount})
+};
 
 const v$ = useVuelidate(rules, state)
 
@@ -69,10 +85,9 @@ const showErrorToast = (text) => {
     icon: true,
     rtl: false
   });
-  isSubmitting.value = false
 }
 
-const cancelOrder = (name, drink, amount) => {
+const cancelOrder = async (name, drink, amount) => {
   isSubmitting.value = true
   console.log("Canceling order", name, " ", drink, " ", amount)
   const orderData = {
@@ -83,46 +98,64 @@ const cancelOrder = (name, drink, amount) => {
 
   //Remove order from previous orders
   setTimeout(() => {
-    previousOrders.value = previousOrders.value.filter(order => order.name !== name || order.drink !== drink || order.amount !== amount)
+    let result = []
+    let found = false
+    for (const order of previousOrders.value) {
+      if (order.drink === drink && order.amount === amount && order.name === name && !found) {
+        found = true
+      } else {
+        result.push(order)
+      }
+    }
+    previousOrders.value = result
   }, 3000)
 
-  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-  axios.post(postUrl, orderData)
-    .then(() => {
-      console.log(orderData, ' canceled successfully');
-      showSuccessToast("Tellimus tühistatud")
-    })
-    .catch((error) => {
-      console.error('Error canceling order:', error);
-      showErrorToast("Tellimuse tühistamine ebaõnnestus")
-    });
+  try {
+    console.log("Canceling order", orderData)
+    await axios.post(postUrl, orderData);
+    console.log(orderData, ' placed successfully');
+    showSuccessToast("Tellimus esitatud:\n"
+      + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
+  } catch (error) {
+    console.error('Error placing order:', error);
+    showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
+      + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
+    await cancelOrder(name, drink, amount);
+  }
 }
 
-const submitOrder = () => {
+const submitOrders = async() => {
+  for (const order of currentOrders.value) {
+    await submitOrder(order)
+  }
+}
+
+const submitOrder = async (order) => {
   v$.value.$touch()
-  if (state.name === "" || state.drink === "" || isNaN(state.amount)) {
+  if (state.name === "" || state.drink === "") {
     return
   }
   isSubmitting.value = true
   const orderData = {
-    customer_name: state.name,
-    drink_name: state.drink,
-    quantity: state.amount,
+    customer_name: order.name,
+    drink_name: order.drink,
+    quantity: order.amount,
   };
 
-  rememberOrder(state.name, state.drink, state.amount)
-
-  axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-  axios.post(postUrl, orderData)
-    .then(() => {
-      console.log(orderData, ' placed successfully');
-      showSuccessToast("Tellimus esitatud")
-    })
-    .catch((error) => {
-      console.error('Error placing order:', error);
-      showErrorToast("Tellimuse esitamine ebaõnnestus")
-    });
-  clear()
+  try {
+    console.log("Submitting order", orderData)
+    await axios.post(postUrl, orderData);
+    console.log(orderData, ' placed successfully');
+    showSuccessToast("Tellimus esitatud:\n"
+      + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
+    rememberOrder(order.name, order.drink, order.amount)
+    removeOrder(orderData.customer_name, orderData.drink_name, orderData.quantity)
+  } catch (error) {
+    console.error('Error placing order:', error);
+    showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
+      + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
+    await submitOrder(order);
+  }
 };
 
 function clear() {
@@ -133,11 +166,29 @@ function clear() {
   }
 }
 
+function removeOrder(name, drink, amount) {
+  //Remove only first matching element
+  let result = []
+  let found = false
+  for (const order of currentOrders.value) {
+    if (order.drink === drink && order.amount === amount && order.name === name && !found) {
+      found = true
+    } else {
+      result.push(order)
+    }
+  }
+  currentOrders.value = result
+}
+
 function rememberOrder(name, drink, amount) {
   previousOrders.value.unshift({name: name, drink: drink, amount: amount})
-  if (previousOrders.value.length > 4) {
+  if (previousOrders.value.length > 6) {
     previousOrders.value.pop()
   }
+}
+
+function reset() {
+  isSubmitting.value = false
 }
 
 const getNames = async (reFetchTimeout) => {
@@ -193,76 +244,134 @@ onMounted(() => {
         @input="v$.name.$touch"
         @blur="v$.name.$touch"
       ></v-autocomplete>
-
-      <v-autocomplete
-        :disabled="isFetchingDrinks"
-        v-model="state.drink"
-        :items="drinks"
-        :error-messages="v$.drink.$errors.map(e => e.$message)"
-        label="Jook"
-        required
-        @input="v$.drink.$touch"
-        @blur="v$.drink.$touch"
-      ></v-autocomplete>
-
-      <v-text-field
-        v-model="state.amount"
-        :error-messages="v$.amount.$errors.map(e => e.$message)"
-        label="Kogus"
-        required
-        @change="v$.amount.$touch"
-        @blur="v$.amount.$touch"
-      ></v-text-field>
-
-      <v-btn-group shaped color="indigo-darken-4" class="d-flex mb-4">
-        <v-btn @click="state.amount--;" :disabled="state.amount === 1">-</v-btn>
-        <v-btn :disabled=true @change="v$.amount.$touch">{{ state.amount }}</v-btn>
-        <v-btn @click="state.amount++">+</v-btn>
+      <v-btn-group>
+        <v-btn
+          @click="openDialog"
+          color="green-darken-1"
+          class="mr-4"
+        >
+          Lisa tellimus
+        </v-btn>
+        <v-btn
+          :disabled="isSubmitting"
+          :loading="isSubmitting"
+          color="indigo-darken-4"
+          class="mr-4"
+          @click="submitOrders"
+        >
+          Saada pilve
+        </v-btn>
+        <v-btn
+          color="deep-orange-darken-4"
+          class="mr-4"
+          :disabled="state.drink === '' && state.name === ''"
+          @click="clear"
+        >
+          Tühjenda
+        </v-btn>
+        <v-btn
+          @click="reset"
+        >
+          Reset
+        </v-btn>
       </v-btn-group>
+      <v-dialog v-model="dialogOpen" max-width="500px">
+        <v-card>
+          <v-card-title>Vali jook ja kogus</v-card-title>
+          <v-card-text>
+            <v-autocomplete
+              :disabled="isFetchingDrinks"
+              v-model="state.drink"
+              :items="drinks"
+              :error-messages="v$.drink.$errors.map(e => e.$message)"
+              label="Jook"
+              required
+              @input="v$.drink.$touch"
+              @blur="v$.drink.$touch"
+            ></v-autocomplete>
 
-      <v-btn
-        :disabled="isSubmitting"
-        :loading="isSubmitting"
-        class="me-4"
-        color="indigo-darken-4"
-        @click="submitOrder"
-      >
-        Esita tellimus
-      </v-btn>
-      <v-btn
-        color="deep-orange-darken-4"
-        :disabled="state.drink === '' && state.name === ''"
-        @click="clear"
-      >
-        Tühjenda
-      </v-btn>
+            <v-text-field
+              v-model="state.amount"
+              :error-messages="v$.amount.$errors.map(e => e.$message)"
+              label="Kogus"
+              required
+              @change="v$.amount.$touch"
+              @blur="v$.amount.$touch"
+            ></v-text-field>
+
+            <v-btn-group shaped color="indigo-darken-4" class="d-flex mb-4">
+              <v-btn @click="state.amount--;" :disabled="state.amount === 1">-</v-btn>
+              <v-btn :disabled=true @change="v$.amount.$touch">{{ state.amount }}</v-btn>
+              <v-btn @click="state.amount++">+</v-btn>
+            </v-btn-group>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn
+              class="ml-4"
+              color="deep-orange-darken-4"
+              @click="closeDialog">Välju
+            </v-btn>
+            <v-btn
+              color="green-darken-1"
+              @click="saveOrder">Lisa
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-card class="mt-6">
+        <v-card-title>Hetke tellimus</v-card-title>
+        <v-list>
+          <v-list-item
+            v-for="(order, index) in currentOrders"
+            :key="index"
+            :value="order"
+            rounded="shaped"
+          >
+            <v-list-item-action>
+              <v-btn
+                color="deep-orange-darken-4"
+                @click="removeOrder(order.name, order.drink, order.amount)"
+                class="mr-8"
+                :loading="isSubmitting"
+                :disabled="isSubmitting"
+              >
+                Eemalda
+              </v-btn>
+              {{ order.name }}: {{ order.amount }}x {{ order.drink }}
+            </v-list-item-action>
+          </v-list-item>
+        </v-list>
+      </v-card>
     </v-form>
   </v-col>
 
-  <v-card>
-    <v-card-title>Eelnevad tellimused</v-card-title>
-    <v-list>
-      <v-list-item
-        v-for="(order, index) in previousOrders"
-        :key="index"
-        :value="order"
-        rounded="shaped"
-      >
-        <v-list-item-action>
-          {{ order.name }}: {{ order.amount }}x {{ order.drink }}
-          <v-btn
-            color="deep-orange-darken-4"
-            @click="cancelOrder(order.name, order.drink, order.amount)"
-            class="ml-16"
-            :loading="isSubmitting"
-            :disabled="isSubmitting"
-          >
-            Tühista
-          </v-btn>
-        </v-list-item-action>
-      </v-list-item>
-    </v-list>
-  </v-card>
+  <v-col>
+    <v-card>
+      <v-card-title>Eelnevad tellimused</v-card-title>
+      <v-list>
+        <v-list-item
+          v-for="(order, index) in previousOrders"
+          :key="index"
+          :value="order"
+          rounded="shaped"
+        >
+          <v-list-item-action>
+            <v-btn
+              color="deep-orange-darken-4"
+              @click="cancelOrder(order.name, order.drink, order.amount)"
+              class="mr-8"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
+            >
+              Tühista
+            </v-btn>
+            {{ order.name }}: {{ order.amount }}x {{ order.drink }}
+          </v-list-item-action>
+        </v-list-item>
+      </v-list>
+    </v-card>
+  </v-col>
 </template>
 
 <style scoped>
