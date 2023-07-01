@@ -4,7 +4,6 @@ import {useVuelidate} from '@vuelidate/core'
 import {required, numeric, minValue} from '@vuelidate/validators'
 import axios from "axios";
 import {useToast} from "vue-toastification";
-import {forEach} from "core-js/stable/dom-collections";
 
 const Order = {
   name: "",
@@ -21,11 +20,14 @@ const postUrl = "http://localhost:5000/order"
 const namesUrl = "http://localhost:5000/names"
 const drinksUrl = "http://localhost:5000/drinks"
 
-const isSubmitting = ref(false)
 const names = ref([])
 const drinks = ref([])
+const isSubmitting = ref(false)
 const isFetchingNames = ref(true)
 const isFetchingDrinks = ref(true)
+const doneFetching = ref(false)
+const dialogOpen = ref(false);
+
 const toast = useToast()
 
 const rules = {
@@ -33,8 +35,7 @@ const rules = {
   drink: {required},
   amount: {required, numeric, minValue: minValue(1)},
 }
-
-const dialogOpen = ref(false);
+const v$ = useVuelidate(rules, state)
 
 const openDialog = () => {
   dialogOpen.value = true;
@@ -45,12 +46,22 @@ const closeDialog = () => {
 };
 
 const saveOrder = () => {
-  v$.value.$touch()
+  if (v$.value.$invalid) {
+    v$.value.$touch();
+    if (v$.value.name.$invalid) {
+      showErrorToast("Nime valimine on kohustuslik");
+      closeDialog();
+    } else if (v$.value.drink.$invalid) {
+      showErrorToast("Joogi valimine on kohustuslik");
+    } else if (v$.value.amount.$invalid) {
+      showErrorToast("Kogus peab olema vähemalt 1");
+    }
+    return;
+  }
   dialogOpen.value = false;
-  currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount})
+  currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount});
+  localStorage.setItem("currentOrders", JSON.stringify(currentOrders.value));
 };
-
-const v$ = useVuelidate(rules, state)
 
 const showSuccessToast = (text) => {
   toast.success(text, {
@@ -109,32 +120,29 @@ const cancelOrder = async (name, drink, amount) => {
     }
     previousOrders.value = result
   }, 3000)
+  localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
 
   try {
     console.log("Canceling order", orderData)
     await axios.post(postUrl, orderData);
-    console.log(orderData, ' placed successfully');
-    showSuccessToast("Tellimus esitatud:\n"
+    console.log(orderData, ' canceled successfully');
+    showSuccessToast("Tellimus tühistatud:\n"
       + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
   } catch (error) {
-    console.error('Error placing order:', error);
-    showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
+    console.error('Error canceling order:', error);
+    showErrorToast("Tellimuse tühistamine ebaõnnestus:\n"
       + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
     await cancelOrder(name, drink, amount);
   }
 }
 
-const submitOrders = async() => {
+const submitOrders = async () => {
   for (const order of currentOrders.value) {
     await submitOrder(order)
   }
 }
 
 const submitOrder = async (order) => {
-  v$.value.$touch()
-  if (state.name === "" || state.drink === "") {
-    return
-  }
   isSubmitting.value = true
   const orderData = {
     customer_name: order.name,
@@ -178,6 +186,7 @@ function removeOrder(name, drink, amount) {
     }
   }
   currentOrders.value = result
+  localStorage.setItem("currentOrders", JSON.stringify(currentOrders.value))
 }
 
 function rememberOrder(name, drink, amount) {
@@ -185,10 +194,7 @@ function rememberOrder(name, drink, amount) {
   if (previousOrders.value.length > 6) {
     previousOrders.value.pop()
   }
-}
-
-function reset() {
-  isSubmitting.value = false
+  localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
 }
 
 const getNames = async (reFetchTimeout) => {
@@ -198,6 +204,7 @@ const getNames = async (reFetchTimeout) => {
     showSuccessToast("Nimed laetud");
     console.log(response.data);
     names.value = response.data;
+    localStorage.setItem("names", JSON.stringify(names.value));
     isFetchingNames.value = false;
   } catch (error) {
     console.error('Error receiving names:', error);
@@ -215,6 +222,7 @@ const getDrinks = async (reFetchTimeout) => {
     showSuccessToast("Joogid laetud");
     console.log(response.data);
     drinks.value = response.data;
+    localStorage.setItem("drinks", JSON.stringify(drinks.value));
     isFetchingDrinks.value = false;
   } catch (error) {
     console.error('Error receiving drinks:', error);
@@ -225,9 +233,31 @@ const getDrinks = async (reFetchTimeout) => {
   }
 };
 
-onMounted(() => {
-  getNames(1000);
-  getDrinks(1000);
+onMounted(async () => {
+  const previousOrdersString = localStorage.getItem("previousOrders")
+  const currentOrdersString = localStorage.getItem("currentOrders")
+  const namesString = localStorage.getItem("names")
+  const drinksString = localStorage.getItem("drinks")
+
+  if (previousOrdersString) {
+    previousOrders.value = JSON.parse(previousOrdersString)
+  }
+  if (currentOrdersString) {
+    currentOrders.value = JSON.parse(currentOrdersString)
+  }
+  if (namesString) {
+    names.value = JSON.parse(namesString)
+    isFetchingNames.value = false;
+  } else {
+    await getNames(1000);
+  }
+  if (drinksString) {
+    drinks.value = JSON.parse(drinksString)
+    isFetchingDrinks.value = false;
+  } else {
+    await getDrinks(1000);
+  }
+  doneFetching.value = true;
 });
 </script>
 
@@ -235,7 +265,7 @@ onMounted(() => {
   <v-col>
     <v-form class="mt-2">
       <v-autocomplete
-        :disabled="isFetchingNames"
+        v-if="!isFetchingNames"
         v-model="state.name"
         :items="names"
         :error-messages="v$.name.$errors.map(e => e.$message)"
@@ -244,11 +274,18 @@ onMounted(() => {
         @input="v$.name.$touch"
         @blur="v$.name.$touch"
       ></v-autocomplete>
+      <v-card v-else class="mb-4">
+        <v-card-text>
+          <h1>Laen nimesid...</h1>
+        </v-card-text>
+        <v-progress-linear indeterminate color="primary"></v-progress-linear>
+      </v-card>
       <v-btn-group>
         <v-btn
           @click="openDialog"
           color="green-darken-1"
           class="mr-4"
+          :disabled="doneFetching.value"
         >
           Lisa tellimus
         </v-btn>
