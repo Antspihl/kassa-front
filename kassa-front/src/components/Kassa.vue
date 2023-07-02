@@ -10,17 +10,17 @@ const Order = {
   drink: "",
   amount: 1,
 }
-
-const editOrder = ref({
+const editOrder = {
   name: "",
   drink: "",
   amount: 1,
-})
+}
 
 const previousOrders = ref([])
 const currentOrders = ref([])
 
 const state = reactive({...Order})
+const editState = reactive({...editOrder})
 
 const postUrl = "http://localhost:5000/order"
 const namesUrl = "http://localhost:5000/names"
@@ -37,49 +37,34 @@ const editDialogOpen = ref(false);
 
 const toast = useToast()
 
-const rules = {
+const orderRules = {
   name: {required},
   drink: {required},
   amount: {required, numeric, minValue: minValue(1)},
-  oldName: {required},
-  oldDrink: {required},
-  oldAmount: {required, numeric, minValue: minValue(1)},
 }
-const v$ = useVuelidate(rules, state)
+const v$ = useVuelidate(orderRules, state)
 
-const openEditDialog = (order) => {
-  openDialog("edit")
-  editOrder.value = order
+const openEditDialog = (name, drink, amount) => {
+  editDialogOpen.value = true
+  editState.name = name
+  editState.drink = drink
+  editState.amount = amount
 }
-
-const openDialog = (dialogName) => {
-  if (dialogName === "order") {
-    orderDialogOpen.value = true;
-  } else if (dialogName === "edit") {
-    editDialogOpen.value = true;
-  }
-};
-
-const closeDialog = (dialogName) => {
-  if (dialogName === "order") {
-    orderDialogOpen.value = false;
-  } else if (dialogName === "edit") {
-    editDialogOpen.value = false;
-  }
-};
 
 const saveOrder = () => {
   if (v$.value.$invalid) {
     v$.value.$touch();
     if (v$.value.name.$invalid) {
       showErrorToast("Nime valimine on kohustuslik");
-      closeDialog('order');
+      orderDialogOpen.value = false
+      return
     } else if (v$.value.drink.$invalid) {
       showErrorToast("Joogi valimine on kohustuslik");
+      return
     } else if (v$.value.amount.$invalid) {
       showErrorToast("Kogus peab olema vähemalt 1");
+      return
     }
-    return;
   }
   orderDialogOpen.value = false;
   currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount});
@@ -87,64 +72,36 @@ const saveOrder = () => {
 };
 
 const saveOrderChanges = async (oldOrder, newOrder) => {
+  console.log("Checking if changes were made", oldOrder, newOrder)
   if (oldOrder.name === newOrder.name && oldOrder.drink === newOrder.drink && oldOrder.amount === newOrder.amount) {
     console.log("No changes made", oldOrder, newOrder)
     return
   }
-  if (v$.value.$invalid) {
-    console.log("Invalid data for edit")
-    v$.value.$touch();
-    if (v$.value.name.$invalid) {
-      showErrorToast("Nime valimine on kohustuslik");
-      closeDialog('edit');
-    } else if (v$.value.drink.$invalid) {
-      showErrorToast("Joogi valimine on kohustuslik");
-    } else if (v$.value.amount.$invalid) {
-      showErrorToast("Kogus peab olema vähemalt 1");
-    }
-    return;
+
+  if (newOrder.name === "") {
+    showErrorToast("Nime valimine on kohustuslik");
+    return
+  } else if (newOrder.drink === "") {
+    showErrorToast("Joogi valimine on kohustuslik");
+    return
+  } else if (newOrder.amount < 1) {
+    showErrorToast("Kogus peab olema vähemalt 1");
+    return
   }
+
   console.log("Saving order changes", oldOrder, newOrder)
-  let oldIndex = previousOrders.value.indexOf(oldOrder)
-  previousOrders.value[oldIndex] = newOrder
   await cancelOrder(oldOrder.name, oldOrder.drink, oldOrder.amount)
   await submitOrder(newOrder)
-  closeDialog('edit')
+  editDialogOpen.value = false
 }
 
 const showSuccessToast = (text) => {
-  toast.success(text, {
-    position: "bottom-right",
-    timeout: 3000,
-    closeOnClick: false,
-    pauseOnFocusLoss: true,
-    pauseOnHover: true,
-    draggable: false,
-    draggablePercent: 0.6,
-    showCloseButtonOnHover: true,
-    hideProgressBar: false,
-    closeButton: "button",
-    icon: true,
-    rtl: false
-  });
+  toast.success(text);
   isSubmitting.value = false
 }
 
 const showErrorToast = (text) => {
-  toast.error(text, {
-    position: "bottom-right",
-    timeout: 3000,
-    closeOnClick: false,
-    pauseOnFocusLoss: true,
-    pauseOnHover: true,
-    draggable: false,
-    draggablePercent: 0.6,
-    showCloseButtonOnHover: true,
-    hideProgressBar: false,
-    closeButton: "button",
-    icon: true,
-    rtl: false
-  });
+  toast.error(text);
 }
 
 const cancelOrder = async (name, drink, amount) => {
@@ -157,7 +114,7 @@ const cancelOrder = async (name, drink, amount) => {
   };
 
   //Remove order from previous orders
-  setTimeout(() => {
+  //setTimeout(() => {
     let result = []
     let found = false
     for (const order of previousOrders.value) {
@@ -168,7 +125,7 @@ const cancelOrder = async (name, drink, amount) => {
       }
     }
     previousOrders.value = result
-  }, 3000)
+  //}, 3000)
   localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
 
   try {
@@ -192,6 +149,10 @@ const submitOrders = async () => {
 }
 
 const submitOrder = async (order) => {
+  if (order.name === "" || order.drink === "" || order.amount === "") {
+    console.log("Order is empty", order)
+    return
+  }
   isSubmitting.value = true
   const orderData = {
     customer_name: order.name,
@@ -328,7 +289,7 @@ onMounted(async () => {
       </v-card>
       <v-btn-group>
         <v-btn
-          @click="openDialog('order')"
+          @click="orderDialogOpen = true"
           color="green-darken-1"
           class="mr-4"
           :disabled="doneFetching.value"
@@ -387,7 +348,7 @@ onMounted(async () => {
             <v-btn
               class="ml-4"
               color="deep-orange-darken-4"
-              @click="closeDialog('order')"
+              @click="orderDialogOpen = false"
             >
               Välju
             </v-btn>
@@ -449,7 +410,9 @@ onMounted(async () => {
             <v-btn
               color="indigo-darken-4"
               class="mx-4"
-              @click="openEditDialog(order)"
+              @click="openEditDialog(order.name, order.drink, order.amount)"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
             >
               Muuda tellimust
             </v-btn>
@@ -458,51 +421,42 @@ onMounted(async () => {
                 <v-card-title>Muuda, mis tahad</v-card-title>
                 <v-card-text>
                   <v-autocomplete
-                    v-model="editOrder.name"
+                    v-model="editState.name"
                     :items="names"
-                    :error-messages="v$.oldName.$errors.map(e => e.$message)"
                     label="Nimi"
                     required
-                    @input="v$.oldName.$touch"
-                    @blur="v$.oldName.$touch"
                   ></v-autocomplete>
 
                   <v-autocomplete
-                    v-model="editOrder.drink"
+                    v-model="editState.drink"
                     :items="drinks"
-                    :error-messages="v$.oldDrink.$errors.map(e => e.$message)"
                     label="Jook"
                     required
-                    @input="v$.oldDrink.$touch"
-                    @blur="v$.oldDrink.$touch"
                   ></v-autocomplete>
 
                   <v-text-field
-                    v-model="editOrder.amount"
-                    :error-messages="v$.oldAmount.$errors.map(e => e.$message)"
+                    v-model="editState.amount"
                     label="Kogus"
                     required
-                    @change="v$.oldAmount.$touch"
-                    @blur="v$.oldAmount.$touch"
                   ></v-text-field>
 
                   <v-btn-group shaped color="indigo-darken-4" class="d-flex mb-4">
-                    <v-btn @click="editOrder.amount--;" :disabled="editOrder.amount === 1">-</v-btn>
-                    <v-btn :disabled=true @change="v$.amount.$touch">{{ editOrder.amount }}</v-btn>
-                    <v-btn @click="editOrder.amount++">+</v-btn>
+                    <v-btn @click="editState.amount--;" :disabled="editState.amount === 1">-</v-btn>
+                    <v-btn :disabled=true @change="v$.amount.$touch">{{ editState.amount }}</v-btn>
+                    <v-btn @click="editState.amount++">+</v-btn>
                   </v-btn-group>
                 </v-card-text>
                 <v-card-actions>
                   <v-btn
                     class="ml-4"
                     color="deep-orange-darken-4"
-                    @click="closeDialog('edit')"
+                    @click="editDialogOpen=false"
                   >
                     Välju
                   </v-btn>
                   <v-btn
                     color="green-darken-1"
-                    @click="saveOrderChanges(order, editOrder)"
+                    @click="saveOrderChanges(order, editState)"
                   >
                     Salvesta muudatused
                   </v-btn>
