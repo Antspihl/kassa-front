@@ -34,6 +34,7 @@ const isFetchingDrinks = ref(true)
 const doneFetching = ref(false)
 const orderDialogOpen = ref(false);
 const editDialogOpen = ref(false);
+const orderUniqueId = ref(0)
 
 const toast = useToast()
 
@@ -67,7 +68,7 @@ const saveOrder = () => {
     }
   }
   orderDialogOpen.value = false;
-  currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount});
+  currentOrders.value.push({name: state.name, drink: state.drink, amount: state.amount, id: orderUniqueId.value++});
   localStorage.setItem("currentOrders", JSON.stringify(currentOrders.value));
 };
 
@@ -78,10 +79,10 @@ const saveOrderChanges = async (oldOrder, newOrder) => {
     return
   }
 
-  if (newOrder.name === "") {
+  if (!newOrder.name) {
     showErrorToast("Nime valimine on kohustuslik");
     return
-  } else if (newOrder.drink === "") {
+  } else if (!newOrder.drink) {
     showErrorToast("Joogi valimine on kohustuslik");
     return
   } else if (newOrder.amount < 1) {
@@ -90,7 +91,7 @@ const saveOrderChanges = async (oldOrder, newOrder) => {
   }
 
   console.log("Saving order changes", oldOrder, newOrder)
-  await cancelOrder(oldOrder.name, oldOrder.drink, oldOrder.amount)
+  await cancelOrder(oldOrder.name, oldOrder.drink, oldOrder.amount, oldOrder.id)
   await submitOrder(newOrder)
   editDialogOpen.value = false
 }
@@ -104,9 +105,9 @@ const showErrorToast = (text) => {
   toast.error(text);
 }
 
-const cancelOrder = async (name, drink, amount) => {
+const cancelOrder = async (name, drink, amount, id) => {
   isSubmitting.value = true
-  console.log("Canceling order", name, " ", drink, " ", amount)
+  console.log("Canceling order", name, " ", drink, " ", amount, " ", id)
   const orderData = {
     customer_name: name,
     drink_name: drink,
@@ -115,16 +116,7 @@ const cancelOrder = async (name, drink, amount) => {
 
   //Remove order from previous orders
   setTimeout(() => {
-    let result = []
-    let found = false
-    for (const order of previousOrders.value) {
-      if (order.drink === drink && order.amount === amount && order.name === name && !found) {
-        found = true
-      } else {
-        result.push(order)
-      }
-    }
-    previousOrders.value = result
+    previousOrders.value = previousOrders.value.filter(order => order.id !== id)
   }, 3000)
   localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
 
@@ -149,7 +141,7 @@ const submitOrders = async () => {
 }
 
 const submitOrder = async (order) => {
-  if (order.name === "" || order.drink === "" || order.amount === "") {
+  if (!order.name || !order.drink || !order.amount) {
     console.log("Order is empty", order)
     return
   }
@@ -166,8 +158,8 @@ const submitOrder = async (order) => {
     console.log(orderData, ' placed successfully');
     showSuccessToast("Tellimus esitatud:\n"
       + orderData.customer_name + ": " + orderData.quantity + "x" + orderData.drink_name);
-    rememberOrder(order.name, order.drink, order.amount)
-    removeOrder(orderData.customer_name, orderData.drink_name, orderData.quantity)
+    rememberOrder(order.name, order.drink, order.amount, order.id)
+    removeOrder(order.id)
   } catch (error) {
     console.error('Error placing order:', error);
     showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
@@ -179,28 +171,16 @@ const submitOrder = async (order) => {
 const clear = () => {
   v$.value.$reset()
 
-  for (const [key, value] of Object.entries(Order)) {
-    state[key] = value
-  }
+  Object.assign(state, {...Order})
 }
 
-const removeOrder = (name, drink, amount) => {
-  //Remove only first matching element
-  let result = []
-  let found = false
-  for (const order of currentOrders.value) {
-    if (order.drink === drink && order.amount === amount && order.name === name && !found) {
-      found = true
-    } else {
-      result.push(order)
-    }
-  }
-  currentOrders.value = result
+const removeOrder = (id) => {
+  currentOrders.value = currentOrders.value.filter(order => order.id !== id)
   localStorage.setItem("currentOrders", JSON.stringify(currentOrders.value))
 }
 
-const rememberOrder = (name, drink, amount) => {
-  previousOrders.value.unshift({name: name, drink: drink, amount: amount})
+const rememberOrder = (name, drink, amount, id) => {
+  previousOrders.value.unshift({name: name, drink: drink, amount: amount, id: id})
   if (previousOrders.value.length > 6) {
     previousOrders.value.pop()
   }
@@ -249,8 +229,17 @@ onMounted(async () => {
   const namesString = localStorage.getItem("names")
   const drinksString = localStorage.getItem("drinks")
 
-  if (previousOrdersString) previousOrders.value = JSON.parse(previousOrdersString)
-  if (currentOrdersString) currentOrders.value = JSON.parse(currentOrdersString)
+  if (previousOrdersString) {
+    previousOrders.value = JSON.parse(previousOrdersString)
+    let maxId = previousOrders.value.reduce((max, order) => Math.max(max, order.id), 0)
+    orderUniqueId.value = ++maxId
+  }
+
+  if (currentOrdersString) {
+    currentOrders.value = JSON.parse(currentOrdersString)
+    let maxId = currentOrders.value.reduce((max, order) => Math.max(max, order.id), 0)
+    orderUniqueId.value = ++maxId
+  }
 
   if (namesString) {
     names.value = JSON.parse(namesString)
@@ -308,7 +297,7 @@ onMounted(async () => {
         <v-btn
           color="deep-orange-darken-4"
           class="mr-4"
-          :disabled="state.drink === '' && state.name === ''"
+          :disabled="!state.drink && !state.name"
           @click="clear"
         >
           Tühjenda
@@ -373,7 +362,7 @@ onMounted(async () => {
             <v-list-item-action>
               <v-btn
                 color="deep-orange-darken-4"
-                @click="removeOrder(order.name, order.drink, order.amount)"
+                @click="removeOrder(order.id)"
                 class="mr-8"
                 :loading="isSubmitting"
                 :disabled="isSubmitting"
@@ -401,7 +390,7 @@ onMounted(async () => {
           <v-list-item-action>
             <v-btn
               color="deep-orange-darken-4"
-              @click="cancelOrder(order.name, order.drink, order.amount)"
+              @click="cancelOrder(order.name, order.drink, order.amount, order.id)"
               :loading="isSubmitting"
               :disabled="isSubmitting"
             >
