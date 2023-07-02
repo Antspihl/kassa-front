@@ -29,38 +29,12 @@ const getBills = async (reFetchTimeout) => {
 };
 
 const showSuccessToast = (text) => {
-  toast.success(text, {
-    position: "bottom-right",
-    timeout: 3000,
-    closeOnClick: false,
-    pauseOnFocusLoss: true,
-    pauseOnHover: true,
-    draggable: false,
-    draggablePercent: 0.6,
-    showCloseButtonOnHover: true,
-    hideProgressBar: false,
-    closeButton: "button",
-    icon: true,
-    rtl: false
-  });
+  toast.success(text);
   isSubmitting.value = false
 }
 
 const showErrorToast = (text) => {
-  toast.error(text, {
-    position: "bottom-right",
-    timeout: 3000,
-    closeOnClick: false,
-    pauseOnFocusLoss: true,
-    pauseOnHover: true,
-    draggable: false,
-    draggablePercent: 0.6,
-    showCloseButtonOnHover: true,
-    hideProgressBar: false,
-    closeButton: "button",
-    icon: true,
-    rtl: false
-  });
+  toast.error(text);
   isSubmitting.value = false
 }
 
