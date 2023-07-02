@@ -114,7 +114,7 @@ const cancelOrder = async (name, drink, amount) => {
   };
 
   //Remove order from previous orders
-  //setTimeout(() => {
+  setTimeout(() => {
     let result = []
     let found = false
     for (const order of previousOrders.value) {
@@ -125,7 +125,7 @@ const cancelOrder = async (name, drink, amount) => {
       }
     }
     previousOrders.value = result
-  //}, 3000)
+  }, 3000)
   localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
 
   try {
