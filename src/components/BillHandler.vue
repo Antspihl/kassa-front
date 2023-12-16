@@ -57,7 +57,7 @@ onMounted(() => {
       <v-card-text>
         <h1>Laen arveid...</h1>
       </v-card-text>
-      <v-progress-linear indeterminate color="primary"></v-progress-linear>
+      <v-progress-linear :indeterminate="true" color="primary"></v-progress-linear>
     </v-card>
   </v-col>
 </template>

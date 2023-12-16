@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar color="primary" flat>
+  <v-app-bar color="primary" :flat="true">
     <v-img class="mr-4 ml-4 pa-2" :max-height="64" :max-width="120" src="@/assets/sov_logo.png"/>
     <v-btn
       size="x-large"
