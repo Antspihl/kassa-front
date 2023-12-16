@@ -51,7 +51,22 @@ npm run lint
 # pnpm
 pnpm lint
 ```
+### Docker Image Update
+```
+docker build -t antspihl/kassa-front:latest .
 
-### Customize configuration
+docker login
 
-See [Configuration Reference](https://vitejs.dev/config/).
+docker tag antspihl/kassa-front:latest antspihl/kassa-front:latest
+
+docker push antspihl/kassa-front:latest
+```
+
+### Pull and run the image
+```
+docker login
+
+docker pull antspihl/kassa-front:latest
+
+docker-compose up
+```

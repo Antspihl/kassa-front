@@ -195,7 +195,7 @@ const removeOrder = (id) => {
 
 const rememberOrder = (name, drink, amount, id) => {
   previousOrders.value.unshift({name: name, drink: drink, amount: amount, id: id})
-  if (previousOrders.value.length > 6) {
+  if (previousOrders.value.length > 10) {
     previousOrders.value.pop()
   }
   localStorage.setItem("previousOrders", JSON.stringify(previousOrders.value))
@@ -288,7 +288,7 @@ onMounted(async () => {
         <v-card-text>
           <h1>Laen nimesid...</h1>
         </v-card-text>
-        <v-progress-linear indeterminate color="primary"></v-progress-linear>
+        <v-progress-linear :indeterminate="true" color="primary"></v-progress-linear>
       </v-card>
       <v-btn-group>
         <v-btn
