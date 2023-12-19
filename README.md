@@ -52,21 +52,27 @@ npm run lint
 pnpm lint
 ```
 ### Docker Image Update
-```
+```bash
 docker build -t antspihl/kassa-front:latest .
-
+```
+```bash
 docker login
-
+```
+```bash
 docker tag antspihl/kassa-front:latest antspihl/kassa-front:latest
-
+```
+```bash
 docker push antspihl/kassa-front:latest
 ```
 
 ### Pull and run the image
-```
+
+```bash
 docker login
-
+```
+```bash
 docker pull antspihl/kassa-front:latest
-
+```
+```bash
 docker-compose up
 ```
