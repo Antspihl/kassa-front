@@ -1,14 +1,40 @@
-<script setup>
+<script setup lang="ts">
 
 import axios from "axios";
 import {useToast} from "vue-toastification";
 import {onMounted, ref} from "vue";
+import {VDataTable} from "vuetify/labs/VDataTable";
+type ReadonlyHeaders = InstanceType<typeof VDataTable>['headers']
+type UnwrapReadonlyArray<A> = A extends Readonly<Array<infer I>> ? I : never;
+type ReadonlyDataTableHeader = UnwrapReadonlyArray<ReadonlyHeaders>;
+
 
 const billsUrl = "http://localhost:5000/bills"
+const billNameUrl = "http://localhost:5000/bill"
+
+const search = ref('')
+
+interface Bill {
+  name: string,
+  bill: number
+}
+
+interface BillDetail {
+  name: string,
+  bill: string,
+  drinks: Map<string, number>
+}
+
+const bills = ref<Bill[]>([])
+
+const headers: ReadonlyDataTableHeader[] = [
+  { key: 'name', title: 'Isik', value: 'name', sortable: true},
+  { key: 'bill', title: 'Arve', value: 'bill', sortable: true}
+];
+
 
 const isFetchingBills = ref(true)
 const isSubmitting = ref(false)
-const bills = ref([]) // [["name1", bill1], ["name2", bill2]]
 const toast = useToast()
 
 const getBills = async (reFetchTimeout) => {
@@ -45,13 +71,23 @@ onMounted(() => {
 
 <template>
   <v-col>
-    <v-list v-if="!isFetchingBills">
-      <v-list-item v-for="bill in bills" :key="bill[0]">
-        <v-list-item-title>{{ bill[0] }}</v-list-item-title>
-        <v-list-item-subtitle>Arve: {{ bill[1] }}€</v-list-item-subtitle>
-        <v-divider></v-divider>
-      </v-list-item>
-    </v-list>
+    <div v-if="!isFetchingBills">
+    <v-responsive
+    >
+      <v-text-field
+        v-model="search"
+        label="Otsi"
+        :clearable="true"
+      />
+    </v-responsive>
+    <VDataTable
+      :headers="headers"
+      :items="bills"
+      :search="search"
+      class="custom-users-table"
+    >
+    </VDataTable>
+    </div>
 
     <v-card v-else>
       <v-card-text>
