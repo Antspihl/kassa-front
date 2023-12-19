@@ -59,7 +59,6 @@ function sumTheBills() {
     sum += parseInt(bill.bill);
   })
   sumOfBills.value = sum;
-  // Subtract Bill with name "Maja arve" from sum
   bills.value.forEach((bill) => {
     if (bill.name === "Maja arve" || bill.name === "Baari arve") {
       sum -= parseInt(bill.bill);
