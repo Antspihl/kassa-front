@@ -74,5 +74,5 @@ docker login
 docker pull antspihl/kassa-front:latest
 ```
 ```bash
-docker-compose up
+docker run -it -p 3000:3000 --rm --name kassa-front ghcr.io/antspihl/kassa-front:latest
 ```
