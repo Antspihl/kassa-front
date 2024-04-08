@@ -2,7 +2,6 @@ import {defineStore} from "pinia";
 import axios from "axios";
 import {Order, OrderForm} from "../molecules/types";
 import {useToast} from "vue-toastification";
-import {Constants} from "../molecules/Constants";
 
 const toast = useToast();
 
@@ -20,6 +19,8 @@ function showErrorToast(text: string) {
 export const useMainStore = defineStore('main', {
   state: () => ({
     orderId: 0,
+    SAVED_ORDERS_AMOUNT: 20,
+    SHOWN_ORDERS_AMOUNT: 10,
     drinks: [] as string[],
     names: [] as string[],
     currentOrder: {
@@ -35,6 +36,7 @@ export const useMainStore = defineStore('main', {
   actions: {
     async fetchDrinks() {
       console.log("Fetching drinks")
+      this.drinks = []
       try {
         const response = await axios.get(API_URL + "/drinks");
         this.drinks = response.data;
@@ -48,6 +50,7 @@ export const useMainStore = defineStore('main', {
 
     async fetchNames() {
       console.log("Fetching names")
+      this.names = []
       try {
         const response = await axios.get(API_URL + "/names");
         this.names = response.data;
@@ -60,7 +63,7 @@ export const useMainStore = defineStore('main', {
 
     addToOrders(order: Order) {
       this.orders.unshift(order);
-      if (this.orders.length > Constants.SAVED_ORDERS_AMOUNT) this.orders.pop();
+      if (this.orders.length > this.SAVED_ORDERS_AMOUNT) this.orders.pop();
       localStorage.setItem("orders", JSON.stringify(this.orders));
     },
 

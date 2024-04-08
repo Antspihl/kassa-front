@@ -1,10 +1,12 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title>Eelnevad tellimused</v-card-title>
+      <v-card-title>
+        Eelnevad tellimused
+      </v-card-title>
       <v-list>
         <v-list-item
-          v-for="(order, index) in mainStore.orders"
+          v-for="(order, index) in mainStore.orders.slice(0, mainStore.SHOWN_ORDERS_AMOUNT)"
           :key="index"
           :value="order"
           rounded="shaped"
@@ -30,7 +32,6 @@
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
 import EditDialog from "@/molecules/EditDialog.vue";
-import {ref} from "vue";
 import {Order} from "@/molecules/types";
 
 const mainStore = useMainStore();
