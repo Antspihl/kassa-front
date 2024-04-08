@@ -16,16 +16,13 @@ export default createVuetify({
   theme: {
     defaultTheme: 'dark',
     themes: {
-      light: {
-        colors: {
-          primary: '#1867C0',
-          secondary: '#5CBBF6',
-        },
-      },
       dark: {
         colors: {
           primary: '#131C43',
           secondary: '#FFFFFF',
+          accent: '#D84315',
+          success: '#09933f',
+          info: '#1677bd',
         }
       },
     },
