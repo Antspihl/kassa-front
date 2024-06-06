@@ -1,7 +1,9 @@
 <template>
-  <v-row class="mt-2">
+  <v-row>
     <v-col cols="6">
       <DrinkForm/>
+      <v-divider/>
+      <RequestList/>
     </v-col>
     <v-divider vertical></v-divider>
     <v-col cols="6">
@@ -16,6 +18,7 @@ import {useMainStore} from "@/api/MainStore";
 import DrinkForm from "@/molecules/DrinkForm.vue";
 import OrderList from "@/molecules/OrderList.vue";
 import {Order} from "@/molecules/types";
+import RequestList from "@/molecules/RequestList.vue";
 
 const mainStore = useMainStore();
 
