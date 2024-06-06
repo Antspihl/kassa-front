@@ -3,9 +3,19 @@
     <v-card>
       <v-card-title>
         Eelnevad tellimused
+        <v-btn
+          icon="mdi-refresh"
+          @click="fetchOrders()"
+        ></v-btn>
       </v-card-title>
       <v-list>
+        <v-skeleton-loader
+          v-if="loading"
+          v-for="_ in mainStore.SHOWN_ORDERS_AMOUNT"
+          type="list-item-avatar-two-line"
+          />
         <v-list-item
+          v-else
           v-for="(order, index) in mainStore.orders.slice(0, mainStore.SHOWN_ORDERS_AMOUNT)"
           :key="index"
           :value="order"
@@ -15,7 +25,7 @@
             <v-btn
               color="accent"
               @click="cancelOrder(order)"
-              :loading="mainStore.loading.length > 0"
+              :loading="canceling"
               icon="mdi-close"
             />
             <EditDialog
@@ -33,10 +43,23 @@
 import {useMainStore} from "@/api/MainStore";
 import EditDialog from "@/molecules/EditDialog.vue";
 import {Order} from "@/molecules/types";
+import {ref} from "vue";
 
 const mainStore = useMainStore();
+const loading = ref(false)
+const canceling = ref(false)
+
+function fetchOrders() {
+  loading.value = true;
+  mainStore.fetchOrders().then(() => {
+    loading.value = false;
+  });
+}
 
 function cancelOrder(order: Order) {
-  mainStore.cancelOrder(order);
+  canceling.value = true;
+  mainStore.cancelOrder(order).then(() => {
+    canceling.value = false;
+  });
 }
 </script>

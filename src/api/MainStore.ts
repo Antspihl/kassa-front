@@ -24,7 +24,7 @@ export const useMainStore = defineStore('main', {
     drinks: [] as string[],
     names: [] as string[],
     currentOrder: {
-      id: null,
+      id: 0,
       drink: "" as string,
       name: "" as string,
       amount: 1,
@@ -58,6 +58,29 @@ export const useMainStore = defineStore('main', {
         showSuccessToast("Nimed laetud")
       } catch (error) {
         showErrorToast("Nimede laadimine ebaõnnestus");
+      }
+    },
+
+    async fetchOrders() {
+      console.log("Fetching orders")
+      try {
+        const response = await axios.get(API_URL + "/orders");
+        let newOrder: Order;
+        for (let order in response.data) {
+          newOrder = {
+            id: this.orderId++,
+            drink: response.data[order].drink_name,
+            name: response.data[order].customer_name,
+            amount: response.data[order].quantity,
+            isSent: true,
+          }
+          this.addToOrders(newOrder);
+        }
+        localStorage.setItem("orders", JSON.stringify(this.orders));
+        showSuccessToast("Tellimused laetud")
+      } catch (error) {
+        console.error("Error fetching orders", error);
+        showErrorToast("Tellimuste laadimine ebaõnnestus");
       }
     },
 
