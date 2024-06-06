@@ -1,15 +1,57 @@
+<template>
+  <v-col>
+    <div v-if="!isFetchingBills">
+      <h3>Arvete summa hetkel: {{sumOfBills}}€</h3>
+      <h3>Kasu hetkel: {{profit}}€</h3>
+      <v-responsive
+      >
+        <v-text-field
+          v-model="search"
+          label="Otsi nime järgi"
+          :clearable="true"
+        />
+        <v-data-table
+          :headers="headers"
+          :items="bills"
+          :search="search"
+          show-expand
+          item-value="name"
+        >
+          <template v-slot:item.bill="{ value }">
+              {{ value }}€
+          </template>
+          <template v-slot:expanded-row="{ columns, item }">
+            <tr>
+              <td :colspan="columns.length">
+                  <v-list density="compact">
+                    <v-list-subheader>Tellitud joogid</v-list-subheader>
+                      <v-list-item v-for="(value, key) in item.drinks" :key="key">
+                        <v-list-item>
+                          <h3>{{value}}x {{ key }}</h3>
+                        </v-list-item>
+                      </v-list-item>
+                  </v-list>
+              </td>
+            </tr>
+          </template>
+        </v-data-table>
+      </v-responsive>
+    </div>
+
+    <v-skeleton-loader
+      v-else
+      type="table"
+      :loading="isFetchingBills"
+      />
+  </v-col>
+</template>
+
 <script setup lang="ts">
 
 import axios from "axios";
 import {useToast} from "vue-toastification";
 import {onMounted, ref} from "vue";
-import {VDataTable} from "vuetify/labs/VDataTable";
 
-type ReadonlyHeaders = InstanceType<typeof VDataTable>['headers']
-type UnwrapReadonlyArray<A> = A extends Readonly<Array<infer I>> ? I : never;
-type ReadonlyDataTableHeader = UnwrapReadonlyArray<ReadonlyHeaders>;
-
-const expanded = ref([])
 const sumOfBills = ref(0)
 const profit = ref(0)
 const billsUrl = "http://localhost:5000/bills"
@@ -23,12 +65,10 @@ interface BillDetail {
 }
 
 const bills = ref<BillDetail[]>([])
-
-const headers: ReadonlyDataTableHeader[] = [
-  {key: 'name', title: 'Isik', value: 'name', sortable: true},
-  {key: 'bill', title: 'Arve', value: 'bill', sortable: true},
-];
-
+const headers = [
+  { title: 'Nimi', key: 'name' },
+  { title: 'Arve', key: 'bill' }
+]
 
 const isFetchingBills = ref(true)
 const isSubmitting = ref(false)
@@ -81,55 +121,6 @@ const showErrorToast = (text) => {
 onMounted(() => {
   getBills(1000)
 })
+
+
 </script>
-
-<template>
-  <v-col>
-    <div v-if="!isFetchingBills">
-      <h3>Arvete summa hetkel: {{sumOfBills}}€</h3>
-      <h3>Kasu hetkel: {{profit}}€</h3>
-      <v-responsive
-      >
-        <v-text-field
-          v-model="search"
-          label="Otsi nime järgi"
-          :clearable="true"
-        />
-      </v-responsive>
-      <v-data-table
-        v-model:expanded="expanded"
-        :headers="headers"
-        :items="bills"
-        :search="search"
-        item-value="name"
-        show-expand
-      >
-        <template v-slot:expanded-row="{ columns, item }">
-          <tr>
-            <td :colspan="columns.length">
-              <v-list
-              density="compact"
-              >
-                <v-list-item-title><h3>Tellitud joogid:</h3></v-list-item-title>
-                <v-list-item v-for="(value, key) in item.selectable.drinks" :key="key">
-                    <v-list-item-title>{{ key }}: {{ value }}</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </td>
-          </tr>
-        </template>
-      </v-data-table>
-    </div>
-
-    <v-card v-else>
-      <v-card-text>
-        <h1>Laen arveid...</h1>
-      </v-card-text>
-      <v-progress-linear :indeterminate="true" color="primary"></v-progress-linear>
-    </v-card>
-  </v-col>
-</template>
-
-<style scoped>
-
-</style>
