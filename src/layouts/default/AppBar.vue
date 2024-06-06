@@ -4,10 +4,34 @@
     <v-btn size="x-large" :active="false" variant="text" height="64" to="/" text="Avaleht"/>
     <v-btn size="x-large" :active="false" variant="text" height="64" to="/arved" text="Arved"/>
     <v-spacer></v-spacer>
+    <v-switch
+      class=" pt-5 pl-4"
+      v-model="isLight"
+      @click="toggleTheme"
+    >
+      <template v-slot:prepend>
+        <v-icon>mdi-theme-light-dark</v-icon>
+      </template>
+    </v-switch>
     <Settings/>
   </v-toolbar>
 </template>
 
 <script setup>
 import Settings from "@/molecules/Settings.vue";
+import {useTheme} from "vuetify";
+import {ref} from "vue";
+
+const isLight = ref(false);
+const theme = useTheme()
+
+function toggleTheme() {
+  if (isLight.value) {
+    theme.global.name.value = 'dark'
+    isLight.value = false
+  } else {
+    theme.global.name.value = 'light'
+    isLight.value = true
+  }
+}
 </script>
