@@ -5,11 +5,7 @@
         Eelnevad tellimused
         <v-btn
           icon="mdi-refresh"
-          @click="fetchOrders()"
-        />
-        <v-btn
-          icon="mdi-delete"
-          @click="mainStore.clearOrders()"
+          @click="mainStore.refreshOrders()"
         />
       </v-card-title>
       <v-list>
@@ -52,13 +48,6 @@ import {onMounted, ref} from "vue";
 const mainStore = useMainStore();
 const loading = ref(false)
 const canceling = ref(false)
-
-function fetchOrders() {
-  loading.value = true;
-  mainStore.fetchOrders().then(() => {
-    loading.value = false;
-  });
-}
 
 function cancelOrder(order: Order) {
   canceling.value = true
