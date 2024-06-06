@@ -1,10 +1,10 @@
 <template>
   <v-row class="mt-2">
-    <v-col>
+    <v-col cols="6">
       <DrinkForm/>
     </v-col>
     <v-divider vertical></v-divider>
-    <v-col>
+    <v-col cols="6">
       <OrderList/>
     </v-col>
   </v-row>
