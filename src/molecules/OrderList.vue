@@ -6,7 +6,11 @@
         <v-btn
           icon="mdi-refresh"
           @click="fetchOrders()"
-        ></v-btn>
+        />
+        <v-btn
+          icon="mdi-delete"
+          @click="mainStore.orders = []"
+        />
       </v-card-title>
       <v-list>
         <v-skeleton-loader
@@ -57,9 +61,10 @@ function fetchOrders() {
 }
 
 function cancelOrder(order: Order) {
-  canceling.value = true;
-  mainStore.cancelOrder(order).then(() => {
-    canceling.value = false;
-  });
+  canceling.value = true
+  mainStore.addCancelOrderRequest(order)
+  setTimeout(() => {
+    canceling.value = false
+  }, 1500)
 }
 </script>
