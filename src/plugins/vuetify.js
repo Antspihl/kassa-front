@@ -25,6 +25,16 @@ export default createVuetify({
           info: '#1677bd',
         }
       },
+      light: {
+        colors: {
+          primary: '#131C43',
+          secondary: '#FFFFFF',
+          accent: '#D84315',
+          success: '#09933f',
+          info: '#1677bd',
+          background: '#f5f5f5',
+        }
+      }
     },
   },
 })
