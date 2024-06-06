@@ -20,6 +20,7 @@
         v-model="mainStore.currentOrder.drink"
         selected-class="text-deep-orange-darken-3"
         mandatory
+        column
       >
         <v-chip
           v-for="drink in mainStore.drinks"
