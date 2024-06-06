@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import axios from "axios";
-import {Order, OrderForm} from "../molecules/types";
+import {BarRequest, Order, OrderForm} from "../molecules/types";
 import {useToast} from "vue-toastification";
 
 const toast = useToast();
@@ -31,7 +31,9 @@ export const useMainStore = defineStore('main', {
       isSent: false,
     } as Order,
     orders: [] as Order[],
-    loading: [] as string[],
+    currentRequest: {} as BarRequest,
+    requestList: [] as BarRequest[],
+    sendingRequests: false,
   }),
   actions: {
     async fetchDrinks() {
@@ -95,21 +97,76 @@ export const useMainStore = defineStore('main', {
       localStorage.setItem("orders", JSON.stringify(this.orders));
     },
 
-    addToLoading(loading: string) {
-      this.loading.push(loading);
+    addOrderRequest(newOrder: Order) {
+      for (const element of this.requestList) {
+        if (element.order.id === newOrder.id) {
+          showErrorToast("Tellimus juba järjekorras");
+          return;
+        }
+      }
+      console.log("Adding order request", newOrder)
+      if (!newOrder.drink || !newOrder.name) {
+        showErrorToast("Vali jook ja nimi");
+        return;
+      }
+      this.requestList.push({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
+      this.startSendingRequests();
     },
 
-    removeFromLoading(loading: string) {
-      this.loading = this.loading.filter((l: string) => l !== loading);
+    addChangeOrderRequest(oldOrder: Order, editedOrder: Order) {
+      for (const element of this.requestList) {
+        if (element.order.id === editedOrder.id) {
+          showErrorToast("Tellimus juba muutmise järjekorras");
+          return;
+        }
+      }
+      console.log("Adding change order request", oldOrder, editedOrder)
+      if (!editedOrder.drink || !editedOrder.name || !oldOrder.drink || !oldOrder.name) {
+        showErrorToast("");
+        return;
+      }
+      this.requestList.push({type: 1, order: editedOrder, oldOrder: oldOrder} as BarRequest);
+      this.startSendingRequests();
+    },
+
+    addCancelOrderRequest(order: Order) {
+      for (const element of this.requestList) {
+        if (element.order.id === order.id) {
+          showErrorToast("Tellimus juba tühistamise järjekorras");
+          return;
+        }
+      }
+      console.log("Adding remove order request", order)
+      this.orders = this.orders.filter((o: Order) => o.id !== order.id);
+      this.requestList.push({type: 2, order: order, oldOrder: order} as BarRequest);
+      this.startSendingRequests();
+    },
+
+    async startSendingRequests() {
+      if (this.sendingRequests || this.requestList.length <= 0) return;
+      console.log("Sending requests")
+      this.sendingRequests = true;
+      while (this.requestList.length > 0) {
+        // @ts-ignore
+        this.currentRequest = this.requestList.shift();
+        if (!this.currentRequest) continue;
+        if (this.currentRequest.type === 0) {
+          await this.addOrder(this.currentRequest.order);
+        } else if (this.currentRequest.type === 1) {
+          await this.changeOrder(this.currentRequest.oldOrder, this.currentRequest.order);
+        } else if (this.currentRequest.type === 2) {
+          await this.cancelOrder(this.currentRequest.order);
+        }
+      }
+      this.currentRequest = {} as BarRequest;
+      this.sendingRequests = false;
     },
 
     async addOrder(newOrder: Order, timeOut: number = 0) {
       console.log("Adding order", newOrder)
-      this.addToLoading("add")
 
       if (!newOrder.drink || !newOrder.name) {
         showErrorToast("Vali jook ja nimi");
-        this.removeFromLoading("add")
         return;
       }
 
@@ -118,7 +175,6 @@ export const useMainStore = defineStore('main', {
         drink_name: newOrder.drink,
         quantity: newOrder.amount,
       }
-
       try {
         await axios.post(API_URL + "/order", sentOrder, {headers: API_HEADERS});
         newOrder.isSent = true;
@@ -126,20 +182,19 @@ export const useMainStore = defineStore('main', {
         this.addToOrders(newOrder);
         showSuccessToast("Tellimus esitatud:\n"
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
-        this.removeFromLoading("add")
       } catch (error) {
         console.error("Error adding order", error);
         showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
-        setTimeout(() => {}, timeOut)
-        await this.addOrder(newOrder, timeOut + 5000);
+        setTimeout(() => {
+        }, timeOut)
+        await this.addOrder(newOrder, 5000);
       }
       console.log(this.orders)
     },
 
     async cancelOrder(order: Order) {
       console.log("Cancelling order", order)
-      this.addToLoading("cancel")
       if (!order.isSent) {
         showErrorToast("Tellimust ei saa tühistada");
         return;
@@ -160,17 +215,14 @@ export const useMainStore = defineStore('main', {
         showErrorToast("Tellimuse tühistamine ebaõnnestus:\n"
           + order.name + ": " + order.amount + "x" + order.drink);
       }
-      this.removeFromLoading("cancel")
     },
 
     async changeOrder(oldOrder: Order, editedOrder: Order) {
       const old = {...oldOrder};
       const edited = {...editedOrder};
-      this.addToLoading("change")
-      console.log("Changing order from", old, "to",edited)
+      console.log("Changing order from", old, "to", edited)
       await this.cancelOrder(old);
       await this.addOrder(edited);
-      this.removeFromLoading("change")
     }
   }
 })
