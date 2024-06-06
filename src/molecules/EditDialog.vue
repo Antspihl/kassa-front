@@ -4,7 +4,7 @@
     class="mx-4"
     @click="openEditDialog"
     icon="mdi-pencil"
-    :loading="mainStore.loading.length > 0"
+    :loading="editing"
   ></v-btn>
   <v-dialog v-model="showDialog" max-width="500px">
     <v-card>
@@ -22,6 +22,7 @@
           v-model="editedOrder.drink"
           selected-class="text-deep-orange-darken-3"
           mandatory
+          column
         >
           <v-chip
             v-for="drink in mainStore.drinks"
@@ -66,6 +67,7 @@ import {ref} from "vue";
 
 const mainStore = useMainStore();
 const showDialog = ref(false);
+const editing = ref(false)
 const editedOrder = ref({} as Order)
 const oldOrder = ref({} as Order)
 
@@ -85,8 +87,12 @@ function closeDialog() {
 }
 
 function closeDialogAndSaveChanges() {
+  editing.value = true
   closeDialog()
-  mainStore.changeOrder(oldOrder.value, editedOrder.value)
+  mainStore.addChangeOrderRequest(oldOrder.value, editedOrder.value)
+  setTimeout(() => {
+    editing.value = false
+  }, 1000)
 }
 
 const props = defineProps<{
