@@ -9,7 +9,7 @@
         />
         <v-btn
           icon="mdi-delete"
-          @click="mainStore.orders = []"
+          @click="mainStore.clearOrders()"
         />
       </v-card-title>
       <v-list>
@@ -17,7 +17,7 @@
           v-if="loading"
           v-for="_ in mainStore.SHOWN_ORDERS_AMOUNT"
           type="list-item-avatar-two-line"
-          />
+        />
         <v-list-item
           v-else
           v-for="(order, index) in mainStore.orders.slice(0, mainStore.SHOWN_ORDERS_AMOUNT)"
@@ -47,7 +47,7 @@
 import {useMainStore} from "@/api/MainStore";
 import EditDialog from "@/molecules/EditDialog.vue";
 import {Order} from "@/molecules/types";
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
 
 const mainStore = useMainStore();
 const loading = ref(false)
@@ -67,4 +67,8 @@ function cancelOrder(order: Order) {
     canceling.value = false
   }, 1500)
 }
+
+onMounted(async () => {
+  await mainStore.refreshOrders()
+});
 </script>
