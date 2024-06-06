@@ -1,5 +1,5 @@
 <template>
-  <v-row>
+  <v-row class="pt-4">
     <v-col cols="6">
       <DrinkForm/>
       <v-divider/>
