@@ -11,3 +11,9 @@ export type OrderForm = {
   drink_name: string,
   quantity: number,
 }
+
+export type BarRequest = {
+  type: number; // 0 - add, 1 - change, 2 - cancel
+  order: Order;
+  oldOrder: Order;
+}
