@@ -86,6 +86,16 @@ export const useMainStore = defineStore('main', {
       }
     },
 
+    clearOrders() {
+      this.orders = [];
+      localStorage.setItem("orders", JSON.stringify(this.orders));
+    },
+
+    refreshOrders() {
+      this.clearOrders();
+      this.fetchOrders();
+    },
+
     addToOrders(order: Order) {
       this.orders.unshift(order);
       if (this.orders.length > this.SAVED_ORDERS_AMOUNT) this.orders.pop();
@@ -109,6 +119,7 @@ export const useMainStore = defineStore('main', {
         showErrorToast("Vali jook ja nimi");
         return;
       }
+      newOrder.id = this.orderId++;
       this.requestList.push({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
       this.startSendingRequests();
     },
@@ -151,24 +162,19 @@ export const useMainStore = defineStore('main', {
         this.currentRequest = this.requestList.shift();
         if (!this.currentRequest) continue;
         if (this.currentRequest.type === 0) {
-          await this.addOrder(this.currentRequest.order);
+          await this.sendAddOrder(this.currentRequest.order);
         } else if (this.currentRequest.type === 1) {
-          await this.changeOrder(this.currentRequest.oldOrder, this.currentRequest.order);
+          await this.sendChangeOrder(this.currentRequest.oldOrder, this.currentRequest.order);
         } else if (this.currentRequest.type === 2) {
-          await this.cancelOrder(this.currentRequest.order);
+          await this.sendCancelOrder(this.currentRequest.order);
         }
       }
       this.currentRequest = {} as BarRequest;
       this.sendingRequests = false;
     },
 
-    async addOrder(newOrder: Order, timeOut: number = 0) {
+    async sendAddOrder(newOrder: Order, timeOut: number = 0) {
       console.log("Adding order", newOrder)
-
-      if (!newOrder.drink || !newOrder.name) {
-        showErrorToast("Vali jook ja nimi");
-        return;
-      }
 
       const sentOrder: OrderForm = {
         customer_name: newOrder.name,
@@ -178,7 +184,6 @@ export const useMainStore = defineStore('main', {
       try {
         await axios.post(API_URL + "/order", sentOrder, {headers: API_HEADERS});
         newOrder.isSent = true;
-        newOrder.id = this.orderId++;
         this.addToOrders(newOrder);
         showSuccessToast("Tellimus esitatud:\n"
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
@@ -188,12 +193,12 @@ export const useMainStore = defineStore('main', {
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
         setTimeout(() => {
         }, timeOut)
-        await this.addOrder(newOrder, 5000);
+        await this.sendAddOrder(newOrder, 5000);
       }
       console.log(this.orders)
     },
 
-    async cancelOrder(order: Order) {
+    async sendCancelOrder(order: Order) {
       console.log("Cancelling order", order)
       if (!order.isSent) {
         showErrorToast("Tellimust ei saa tühistada");
@@ -217,12 +222,12 @@ export const useMainStore = defineStore('main', {
       }
     },
 
-    async changeOrder(oldOrder: Order, editedOrder: Order) {
+    async sendChangeOrder(oldOrder: Order, editedOrder: Order) {
       const old = {...oldOrder};
       const edited = {...editedOrder};
       console.log("Changing order from", old, "to", edited)
-      await this.cancelOrder(old);
-      await this.addOrder(edited);
+      await this.sendCancelOrder(old);
+      await this.sendAddOrder(edited);
     }
   }
 })
