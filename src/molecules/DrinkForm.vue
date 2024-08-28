@@ -7,7 +7,9 @@
         v-model="mainStore.currentOrder.name"
         :items="mainStore.names"
         label="Nimi"
+        clearable
         required
+        ref="autocompleteRef"
       ></v-autocomplete>
       <v-skeleton-loader
         v-else
@@ -75,10 +77,20 @@
 
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
-import {ref} from "vue";
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
 
 const mainStore = useMainStore();
 const adding = ref(false)
+
+const autocompleteRef = ref<HTMLElement | null>(null);
+const filteredItems = computed(() => {
+  if (!mainStore.currentOrder.name) {
+    return [];
+  }
+  return mainStore.names.filter((name) =>
+    name.toLowerCase().includes(mainStore.currentOrder.name.toLowerCase())
+  );
+});
 
 function changeAmount(amount: number) {
   if (mainStore.currentOrder.amount === 1 && amount === 5) {
@@ -111,4 +123,57 @@ function addOrder() {
     adding.value = false;
   }, 1000);
 }
+
+function handleKeydown(event: KeyboardEvent) {
+  const autocompleteElement = autocompleteRef.value?.$el.querySelector('input');
+  if (!autocompleteElement) return;
+
+  switch (event.key) {
+    case 'Shift':
+      event.preventDefault();
+      autocompleteElement.focus();
+      break;
+    case '1':
+      event.preventDefault();
+      triggerArrowKey('ArrowUp');
+      break;
+    case '2':
+      event.preventDefault();
+      triggerArrowKey('ArrowDown');
+      break;
+    case 'Tab':
+      event.preventDefault();
+      if (filteredItems.value.length > 0) {
+        selectFirstItem();
+      }
+      break;
+  }
+}
+
+function triggerArrowKey(key: 'ArrowUp' | 'ArrowDown') {
+  const inputElement = autocompleteRef.value?.$el.querySelector('input');
+  if (!inputElement) return;
+
+  const event = new KeyboardEvent('keydown', {
+    bubbles: true,
+    cancelable: true,
+    key,
+    code: key,
+  });
+  inputElement.dispatchEvent(event);
+}
+
+function selectFirstItem() {
+  if (filteredItems.value.length > 0) {
+    mainStore.currentOrder.name = filteredItems.value[0];
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown);
+});
 </script>

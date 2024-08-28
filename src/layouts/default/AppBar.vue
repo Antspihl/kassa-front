@@ -5,6 +5,22 @@
     <v-btn :disabled="Object.keys(mainStore.currentRequest).length !== 0"
            size="x-large" :active="false" variant="text" height="64" to="/arved" text="Arved"/>
     <v-spacer></v-spacer>
+    <v-tooltip
+      location="bottom"
+    >
+      <template v-slot:activator="{ props }">
+        <v-btn
+          v-bind="props"
+          variant="text"
+          icon="mdi-help"
+        />
+      </template>
+      <p>Nuppude legend:</p>
+      <p><v-icon>mdi-circle-small</v-icon>Shift: fokuseerib nimelahtri</p>
+      <p><v-icon>mdi-circle-small</v-icon>1: viib valikut <v-icon>mdi-arrow-up-bold</v-icon></p>
+      <p><v-icon>mdi-circle-small</v-icon>2: viib valikut <v-icon>mdi-arrow-down-bold</v-icon></p>
+      <p></p>
+    </v-tooltip>
     <v-switch
       class=" pt-5 pl-4"
       v-model="isLight"
@@ -28,6 +44,8 @@ const mainStore = useMainStore()
 
 const isLight = ref(false);
 const theme = useTheme()
+
+const tooltipText = ref('Tooltip<br> text')
 
 function toggleTheme() {
   if (isLight.value) {
