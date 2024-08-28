@@ -51,18 +51,18 @@ npm run lint
 # pnpm
 pnpm lint
 ```
-### Docker Image Update
+### Docker Image Update. Replace [latest] with the version number.
 ```bash
-docker build -t antspihl/kassa-front:latest .
+docker build -t antspihl/kassa-front:[latest] .
 ```
 ```bash
 docker login
 ```
 ```bash
-docker tag antspihl/kassa-front:latest antspihl/kassa-front:latest
+docker tag antspihl/kassa-front:[latest] antspihl/kassa-front:[latest]
 ```
 ```bash
-docker push antspihl/kassa-front:latest
+docker push antspihl/kassa-front:[latest]
 ```
 
 ### Pull and run the image
@@ -74,5 +74,5 @@ docker login
 docker pull antspihl/kassa-front:latest
 ```
 ```bash
-docker run -it -p 3000:3000 --rm --name kassa-front ghcr.io/antspihl/kassa-front:latest
+docker run -it -p 3000:3000 --rm --name kassa-front antspihl/kassa-front:latest
 ```
