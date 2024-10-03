@@ -51,10 +51,11 @@
 import axios from "axios";
 import {useToast} from "vue-toastification";
 import {onMounted, ref} from "vue";
+import {API_URL} from "@/api/MainStore";
 
 const sumOfBills = ref(0)
 const profit = ref(0)
-const billsUrl = "http://localhost:5000/bills"
+const billsUrl = API_URL + "/bills"
 
 const search = ref('')
 
