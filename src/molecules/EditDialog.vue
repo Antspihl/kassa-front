@@ -92,7 +92,7 @@ function closeDialogAndSaveChanges() {
   mainStore.addChangeOrderRequest(oldOrder.value, editedOrder.value)
   setTimeout(() => {
     editing.value = false
-  }, 1000)
+  }, 300)
 }
 
 const props = defineProps<{

@@ -121,7 +121,7 @@ function addOrder() {
   mainStore.addOrderRequest(newOrder);
   setTimeout(() => {
     adding.value = false;
-  }, 1000);
+  }, 300);
 }
 
 function handleKeydown(event: KeyboardEvent) {

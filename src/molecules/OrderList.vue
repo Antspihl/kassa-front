@@ -54,7 +54,7 @@ function cancelOrder(order: Order) {
   mainStore.addCancelOrderRequest(order)
   setTimeout(() => {
     canceling.value = false
-  }, 1500)
+  }, 300)
 }
 
 onMounted(async () => {
