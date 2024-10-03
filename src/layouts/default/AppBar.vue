@@ -19,6 +19,7 @@
       <p><v-icon>mdi-circle-small</v-icon>Shift: fokuseerib nimelahtri</p>
       <p><v-icon>mdi-circle-small</v-icon>1: viib valikut <v-icon>mdi-arrow-up-bold</v-icon></p>
       <p><v-icon>mdi-circle-small</v-icon>2: viib valikut <v-icon>mdi-arrow-down-bold</v-icon></p>
+      <p>{{API_URL}}</p>
       <p></p>
     </v-tooltip>
     <v-switch
@@ -38,7 +39,7 @@
 import Settings from "@/molecules/Settings.vue";
 import {useTheme} from "vuetify";
 import {ref} from "vue";
-import {useMainStore} from "@/api/MainStore";
+import {useMainStore, API_URL} from "@/api/MainStore";
 
 const mainStore = useMainStore()
 
