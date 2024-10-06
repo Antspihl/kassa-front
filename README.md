@@ -30,5 +30,5 @@ docker login
 docker pull antspihl/kassa-front:latest
 ```
 ```bash
-docker run -it -p 3000:3000 --rm --name kassa-front antspihl/kassa-front:latest
+docker run -d -p 3000:3000 --name kassa-front antspihl/kassa-front:latest
 ```
