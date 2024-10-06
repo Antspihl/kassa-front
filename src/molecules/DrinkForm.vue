@@ -47,37 +47,37 @@
           />
         </v-chip>
       </v-chip-group>
-      <v-btn-group shaped color="info" class="d-flex mb-4">
-        <v-btn @click="changeAmount(-5)">-5</v-btn>
-        <v-btn @click="changeAmount(-1)">-1</v-btn>
-        <v-btn :disabled=true>{{ mainStore.currentOrder.amount }}</v-btn>
-        <v-btn @click="changeAmount(1)">+1</v-btn>
-        <v-btn @click="changeAmount(5)">+5</v-btn>
-      </v-btn-group>
-      <v-btn
-        color="success"
-        class="mr-4"
-        size="large"
-        @click="addOrder"
-        :loading="adding"
-      >
-        Lisa tellimus
-      </v-btn>
-      <v-btn
-        color="info"
-        class="mr-4"
-        size="large"
-        @click="clear"
-      >
-        Reset
-      </v-btn>
+      <v-row class="pt-5 pl-4">
+        <v-btn-group shaped color="info" class="d-flex mb-4">
+          <v-btn @click="changeAmount(-5)">-5</v-btn>
+          <v-btn @click="changeAmount(-1)">-1</v-btn>
+          <v-btn :disabled=true>{{ mainStore.currentOrder.amount }}</v-btn>
+          <v-btn @click="changeAmount(1)">+1</v-btn>
+          <v-btn @click="changeAmount(5)">+5</v-btn>
+        </v-btn-group>
+        <v-btn
+          color="success"
+          class="mx-4"
+          size="large"
+          @click="addOrder"
+          :loading="adding"
+          text="Lisa"
+        />
+        <v-btn
+          color="info"
+          class="mr-4"
+          size="large"
+          @click="clear"
+          text="Reset"
+        />
+      </v-row>
     </v-form>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
-import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 
 const mainStore = useMainStore();
 const adding = ref(false)
