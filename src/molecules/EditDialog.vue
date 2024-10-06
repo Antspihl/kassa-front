@@ -73,7 +73,7 @@ const oldOrder = ref({} as Order)
 
 function changeAmount(amount: number) {
   if (editedOrder.value.amount + amount <= 1) editedOrder.value.amount = 1
-  else editedOrder.value.amount += amount;
+  else editedOrder.value.amount = Number(editedOrder.value.amount) + Number(amount);
 }
 
 function openEditDialog() {
