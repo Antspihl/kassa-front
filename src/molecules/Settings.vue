@@ -44,4 +44,9 @@
 <script setup>
 import {API_URL, useMainStore} from "@/api/MainStore";
 const mainStore = useMainStore();
+
+async function updateDrinks() {
+  await mainStore.fetchDrinks();
+  await mainStore.fetchDrinks2();
+}
 </script>

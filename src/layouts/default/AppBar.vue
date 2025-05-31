@@ -22,6 +22,15 @@
     </v-tooltip>
     <v-switch
       class=" pt-5 pl-4"
+      v-model="mainStore.sohvik"
+      @click="toggleSohvik"
+    >
+      <template v-slot:prepend>
+        <v-icon>mdi-coffee</v-icon>
+      </template>
+    </v-switch>
+    <v-switch
+      class=" pt-5 pl-4"
       v-model="isLight"
       @click="toggleTheme"
     >
@@ -29,6 +38,7 @@
         <v-icon>mdi-theme-light-dark</v-icon>
       </template>
     </v-switch>
+
     <Settings/>
   </v-toolbar>
 </template>
@@ -54,5 +64,9 @@ function toggleTheme() {
     theme.global.name.value = 'light'
     isLight.value = true
   }
+}
+
+function toggleSohvik() {
+  mainStore.sohvik = !mainStore.sohvik
 }
 </script>
