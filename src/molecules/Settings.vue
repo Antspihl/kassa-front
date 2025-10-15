@@ -35,13 +35,50 @@
         <v-list-item-title>
           API URL:
         </v-list-item-title>
-        {{ API_URL }}
+        <v-text-field
+          v-model="editableApiUrl"
+          @blur="updateApiUrl"
+          @keyup.enter="updateApiUrl"
+          density="compact"
+          hide-details
+          placeholder="http://localhost:5000"
+        />
+      </v-list-item>
+      <v-list-item class="pl-6">
+        <v-btn
+          @click="resetApiUrl"
+          prepend-icon="mdi-restore"
+          text="Taasta vaikimisi URL"
+          size="small"
+          variant="tonal"
+        />
       </v-list-item>
     </v-list>
   </v-menu>
 </template>
 
 <script setup>
-import {API_URL, useMainStore} from "@/api/MainStore";
+import { ref } from "vue";
+import {API_URL, setApiUrl, useMainStore} from "@/api/MainStore";
+import {useToast} from "vue-toastification";
+
 const mainStore = useMainStore();
+const toast = useToast();
+const editableApiUrl = ref(API_URL);
+
+function updateApiUrl() {
+  if (editableApiUrl.value && editableApiUrl.value.trim() !== '') {
+    setApiUrl(editableApiUrl.value.trim());
+    mainStore.apiUrl = editableApiUrl.value.trim();
+    toast.success("API URL uuendatud: " + editableApiUrl.value.trim());
+  }
+}
+
+function resetApiUrl() {
+  const defaultUrl = "http://localhost:5000";
+  editableApiUrl.value = defaultUrl;
+  setApiUrl(defaultUrl);
+  mainStore.apiUrl = defaultUrl;
+  toast.success("API URL taastatud vaikimisi väärtusele");
+}
 </script>

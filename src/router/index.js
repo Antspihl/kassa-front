@@ -18,6 +18,11 @@ const routes = [
         path: '/arved',
         name: 'Arved',
         component: () => import('@/views/Bills.vue'),
+      },
+      {
+        path: '/statistika',
+        name: 'Statistika',
+        component: () => import('@/views/Statistics.vue'),
       }
     ],
   },
