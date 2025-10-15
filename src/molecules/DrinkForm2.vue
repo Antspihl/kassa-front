@@ -24,7 +24,8 @@
         column
       >
         <v-chip
-          v-for="_ in 20"
+          v-for="index in 20"
+          :key="index"
         >
           <v-progress-circular
             indeterminate
@@ -53,13 +54,13 @@
           color="info"
           class="mr-4"
           size="large"
-          @click="showDialog=true"
+          @click="() => { if (orders.length > 0) showDialog = true }"
           text="Maksa"
         />
         <v-dialog max-width="500" v-model="showDialog">
           <v-card title="Maksa:">
             <v-card-text>
-              <p v-for="order in orders">
+              <p v-for="(order, index) in orders" :key="index">
                 {{ order.drink }}: {{ order.amount }}x {{ order.price }}€ => {{ order.amount * order.price }}€
               </p>
               ==========================================<br>
@@ -121,7 +122,7 @@ const adding = ref(false)
 const showDialog = ref(false)
 const sending = ref(false)
 
-const orders = ref([])
+const orders = ref<tempOrder[]>([]);
 
 function changeAmount(amount: number) {
   if (mainStore.currentOrder.amount === 1 && amount === 5) {
@@ -137,10 +138,11 @@ function changeAmount(amount: number) {
 
 function addOrder() {
   adding.value = true;
+  const drinkObj = mainStore.drinks2.find(d => d.name === mainStore.currentOrder.drink);
   let order: tempOrder = {
     drink: mainStore.currentOrder.drink,
     amount: mainStore.currentOrder.amount,
-    price: mainStore.getPrice()
+    price: drinkObj?.price || 0
   }
   orders.value.push(order);
   mainStore.currentOrder.amount = 1;
@@ -155,7 +157,7 @@ function removeOrder(order: tempOrder) {
 }
 
 async function sendOrder(orders1: tempOrder[]) {
-  if (this.orders.length === 0) return;
+  if (orders1.length == 0) return;
   sending.value = true;
   let fullOrders: OrderForm[] = orders1.map(order => ({
     customer_name: "Sohviku klient",
