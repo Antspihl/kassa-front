@@ -76,6 +76,7 @@ import {
   LinearScale,
   ArcElement
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar, Pie } from 'vue-chartjs';
 
 
@@ -86,7 +87,8 @@ ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
-  ArcElement
+  ArcElement,
+  ChartDataLabels
 );
 
 interface BillDetail {
@@ -177,6 +179,15 @@ const barChartOptions = {
   plugins: {
     legend: {
       display: false
+    },
+    datalabels: {
+      anchor: 'center' as const,
+      formatter: (value: number) => `${value.toFixed(2)}€`,
+      color: '#fff',
+      font: {
+        weight: 'bold' as const,
+        size: 14
+      }
     }
   },
   scales: {
@@ -216,4 +227,3 @@ onMounted(() => {
   getBills(1000);
 });
 </script>
-
