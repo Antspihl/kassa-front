@@ -1,5 +1,5 @@
 export type Order = {
-  id: number;
+  id: string;
   drink: string;
   name: string;
   amount: number;
@@ -18,6 +18,7 @@ export type Drink = {
 }
 
 export type OrderForm = {
+  order_id: string,
   customer_name: string,
   drink_name: string,
   quantity: number,

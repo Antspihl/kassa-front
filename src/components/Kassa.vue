@@ -17,7 +17,6 @@ import {onMounted} from "vue";
 import {useMainStore} from "@/api/MainStore";
 import DrinkForm from "@/molecules/DrinkForm.vue";
 import OrderList from "@/molecules/OrderList.vue";
-import {Order} from "@/molecules/types";
 import RequestList from "@/molecules/RequestList.vue";
 
 const mainStore = useMainStore();
@@ -29,13 +28,7 @@ onMounted(async () => {
     const itemString = localStorage.getItem(item);
     if (itemString) {
       if (item === "orders") {
-        const parsedItem: Order[] = JSON.parse(itemString);
-        parsedItem.forEach(order => {
-          if (order.id > mainStore.orderId) {
-            mainStore.orderId = order.id;
-          }
-        });
-        mainStore.orders = parsedItem;
+        mainStore.orders = JSON.parse(itemString);
       }
       if (item === "names") {
         mainStore.names = JSON.parse(itemString);
@@ -54,7 +47,7 @@ onMounted(async () => {
     name: "",
     drink: mainStore.drinks[0],
     amount: 1,
-    id: 0,
+    id: "",
     isSent: false
   }
 

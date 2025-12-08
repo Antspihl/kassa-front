@@ -115,7 +115,7 @@ function addOrder() {
     name: mainStore.currentOrder.name,
     drink: mainStore.currentOrder.drink,
     amount: mainStore.currentOrder.amount,
-    id: 0,
+    id: "",
     isSent: false
   }
   mainStore.addOrderRequest(newOrder);

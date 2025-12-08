@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import axios from "axios";
 import {BarRequest, Drink, Order, OrderForm} from "@/molecules/types";
 import {useToast} from "vue-toastification";
+import {v4 as uuidv4} from "uuid";
 
 const toast = useToast();
 
@@ -27,14 +28,13 @@ function showErrorToast(text: string) {
 export const useMainStore = defineStore('main', {
   state: () => ({
     apiUrl: API_URL,
-    orderId: 0,
     SAVED_ORDERS_AMOUNT: 20,
     SHOWN_ORDERS_AMOUNT: 10,
     drinks: [] as string[],
     drinks2: [] as Drink[],
     names: [] as string[],
     currentOrder: {
-      id: 0,
+      id: "",
       drink: "" as string,
       name: "" as string,
       amount: 1,
@@ -135,7 +135,7 @@ export const useMainStore = defineStore('main', {
         let newOrder: Order;
         for (let order in response.data) {
           newOrder = {
-            id: this.orderId++,
+            id: uuidv4(),
             drink: response.data[order].drink_name,
             name: response.data[order].customer_name,
             amount: response.data[order].quantity,
@@ -192,8 +192,9 @@ export const useMainStore = defineStore('main', {
         showErrorToast("Vali jook ja nimi");
         return;
       }
-      newOrder.id = this.orderId++;
+      newOrder.id = uuidv4();
       this.requestList.push({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
+      localStorage.setItem("requestList", JSON.stringify(this.requestList));
       this.startSendingRequests();
     },
 
@@ -263,6 +264,7 @@ export const useMainStore = defineStore('main', {
       console.log("Adding order", newOrder)
 
       const sentOrder: OrderForm = {
+        order_id: newOrder.id,
         customer_name: newOrder.name,
         drink_name: newOrder.drink,
         quantity: newOrder.amount,
@@ -297,7 +299,7 @@ export const useMainStore = defineStore('main', {
       }
       for (const order of orders) {
         const newOrder: Order = {
-          id: this.orderId++,
+          id: order.order_id || uuidv4(), // Use existing ID or generate new one
           drink: order.drink_name,
           name: order.customer_name,
           amount: order.quantity,
@@ -315,6 +317,7 @@ export const useMainStore = defineStore('main', {
       }
 
       const sentOrder: OrderForm = {
+        order_id: order.id,
         customer_name: order.name,
         drink_name: order.drink,
         quantity: -order.amount,
