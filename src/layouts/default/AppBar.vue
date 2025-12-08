@@ -11,6 +11,21 @@
       location="bottom"
     >
       <template v-slot:activator="{ props }">
+        <v-icon
+          v-bind="props"
+          :color="mainStore.isConnected ? 'success' : 'error'"
+          size="large"
+          class="mr-2"
+        >
+          {{ mainStore.isConnected ? 'mdi-lan-connect' : 'mdi-lan-disconnect' }}
+        </v-icon>
+      </template>
+      <span>{{ mainStore.isConnected ? 'Ühendatud' : 'Ühendus puudub' }}</span>
+    </v-tooltip>
+    <v-tooltip
+      location="bottom"
+    >
+      <template v-slot:activator="{ props }">
         <v-btn
           v-bind="props"
           variant="text"

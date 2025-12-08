@@ -42,11 +42,51 @@ export const useMainStore = defineStore('main', {
     } as Order,
     orders: [] as Order[],
     currentRequest: {} as BarRequest,
-    requestList: [] as BarRequest[],
+    requestList: JSON.parse(localStorage.getItem("requestList") || "[]") as BarRequest[],
     sendingRequests: false,
     sohvik: false,
+    isConnected: true,
+    connectionCheckInterval: null as number | null,
   }),
   actions: {
+    async checkConnection() {
+      try {
+        await axios.get(API_URL, { timeout: 5000 });
+        if (!this.isConnected) {
+          this.isConnected = true;
+          showSuccessToast("Ühendus taastatud");
+          if (this.requestList.length > 0) {
+            await this.startSendingRequests();
+          }
+        }
+        return true;
+      } catch (error) {
+        if (this.isConnected) {
+          this.isConnected = false;
+          showErrorToast("Ühendus serveriga katkes");
+        }
+        return false;
+      }
+    },
+
+    startConnectionCheck() {
+      this.checkConnection();
+
+      if (this.connectionCheckInterval) {
+        clearInterval(this.connectionCheckInterval);
+      }
+      this.connectionCheckInterval = window.setInterval(() => {
+        this.checkConnection();
+      }, 5000);
+    },
+
+    stopConnectionCheck() {
+      if (this.connectionCheckInterval) {
+        clearInterval(this.connectionCheckInterval);
+        this.connectionCheckInterval = null;
+      }
+    },
+
     async fetchDrinks() {
       console.log("Fetching drinks")
       this.drinks = []
@@ -188,9 +228,21 @@ export const useMainStore = defineStore('main', {
 
     async startSendingRequests() {
       if (this.sendingRequests || this.requestList.length <= 0) return;
+
+      if (!this.isConnected) {
+        console.log("Not connected, waiting for connection...");
+        return;
+      }
+
       console.log("Sending requests")
       this.sendingRequests = true;
       while (this.requestList.length > 0) {
+        if (!this.isConnected) {
+          console.log("Connection lost during sending, pausing...");
+          this.sendingRequests = false;
+          return;
+        }
+
         // @ts-ignore
         this.currentRequest = this.requestList.shift();
         localStorage.setItem("requestList", JSON.stringify(this.requestList));
@@ -207,7 +259,7 @@ export const useMainStore = defineStore('main', {
       this.sendingRequests = false;
     },
 
-    async sendAddOrder(newOrder: Order, timeOut: number = 0) {
+    async sendAddOrder(newOrder: Order) {
       console.log("Adding order", newOrder)
 
       const sentOrder: OrderForm = {
@@ -225,9 +277,12 @@ export const useMainStore = defineStore('main', {
         console.error("Error adding order", error);
         showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
-        setTimeout(() => {
-        }, timeOut)
-        await this.sendAddOrder(newOrder, 5000);
+        // Re-add to the front of the queue instead of infinite retry
+        this.requestList.unshift({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
+        localStorage.setItem("requestList", JSON.stringify(this.requestList));
+        this.sendingRequests = false;
+        // Mark as disconnected to trigger connection check
+        this.isConnected = false;
       }
     },
 
@@ -273,6 +328,12 @@ export const useMainStore = defineStore('main', {
         console.error("Error cancelling order", error);
         showErrorToast("Tellimuse tühistamine ebaõnnestus:\n"
           + order.name + ": " + order.amount + "x" + order.drink);
+        // Re-add to the front of the queue
+        this.requestList.unshift({type: 2, order: order, oldOrder: order} as BarRequest);
+        localStorage.setItem("requestList", JSON.stringify(this.requestList));
+        this.sendingRequests = false;
+        // Mark as disconnected to trigger connection check
+        this.isConnected = false;
       }
     },
 
