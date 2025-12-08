@@ -24,7 +24,7 @@ const mainStore = useMainStore();
 
 
 onMounted(async () => {
-  const items = ["orders", "names", "drinks"];
+  const items = ["orders", "names", "drinks", "requestList"];
   for (const item of items) {
     const itemString = localStorage.getItem(item);
     if (itemString) {
@@ -41,6 +41,8 @@ onMounted(async () => {
         mainStore.names = JSON.parse(itemString);
       } else if (item === "drinks") {
         mainStore.drinks = JSON.parse(itemString);
+      } else if (item === "requestList") {
+        mainStore.requestList = JSON.parse(itemString);
       }
     } else if (item === "names") {
       await mainStore.fetchNames();
@@ -52,8 +54,13 @@ onMounted(async () => {
     name: "",
     drink: mainStore.drinks[0],
     amount: 1,
-    id: null,
+    id: 0,
     isSent: false
+  }
+
+  // Restart sending requests if there are any pending
+  if (mainStore.requestList.length > 0) {
+    mainStore.startSendingRequests();
   }
 });
 </script>

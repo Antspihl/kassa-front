@@ -119,7 +119,8 @@ const totalDrinksSold = computed(() => {
 // Top 5 spenders data for bar chart
 const spendersChartData = computed(() => {
   const sortedBills = [...bills.value]
-    .sort((a, b) => parseFloat(b.bill) - parseFloat(a.bill))
+    .sort((a, b) => Number.parseFloat(b.bill) - Number.parseFloat(a.bill))
+    .filter(c => c.name.split(' ').length >= 2)
     .slice(0, 5);
 
   return {
@@ -128,7 +129,7 @@ const spendersChartData = computed(() => {
       {
         label: 'Arve summa (€)',
         backgroundColor: '#4CAF50',
-        data: sortedBills.map(b => parseFloat(b.bill))
+        data: sortedBills.map(b => Number.parseFloat(b.bill))
       }
     ]
   };

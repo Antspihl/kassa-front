@@ -193,6 +193,7 @@ export const useMainStore = defineStore('main', {
       while (this.requestList.length > 0) {
         // @ts-ignore
         this.currentRequest = this.requestList.shift();
+        localStorage.setItem("requestList", JSON.stringify(this.requestList));
         if (!this.currentRequest) continue;
         if (this.currentRequest.type === 0) {
           await this.sendAddOrder(this.currentRequest.order);

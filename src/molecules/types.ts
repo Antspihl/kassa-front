@@ -6,6 +6,17 @@ export type Order = {
   isSent: boolean;
 };
 
+export type tempOrder = {
+  drink: string;
+  amount: number
+  price: number;
+}
+
+export type Drink = {
+  name: string;
+  price: number;
+}
+
 export type OrderForm = {
   customer_name: string,
   drink_name: string,
