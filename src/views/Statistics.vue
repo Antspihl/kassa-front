@@ -4,7 +4,7 @@
       <h2 class="mb-6">Müügistatistika</h2>
 
       <v-row>
-        <!-- Drinks Pie Chart -->
+        <!-- Drinks Pie Chart on the left -->
         <v-col cols="12" md="6">
           <v-card>
             <v-card-title>Jookide jaotus</v-card-title>
@@ -17,10 +17,10 @@
           </v-card>
         </v-col>
 
-
-        <!-- Top Spenders Bar Chart -->
-        <v-col cols="12" md="6">
-          <v-card>
+        <!-- Right column with stacked cards -->
+        <v-col cols="12" md="6" >
+          <!-- Top Spenders Bar Chart -->
+          <v-card class="mb-4">
             <v-card-title>Suurimad kulutajad</v-card-title>
             <v-card-text>
               <Bar
@@ -29,26 +29,26 @@
               />
             </v-card-text>
           </v-card>
-        </v-col>
-      </v-row>
 
-      <!-- Summary Stats -->
-      <v-row class="mt-4">
-        <v-col cols="12" md="6">
-          <v-card>
-            <v-card-title>Kokku müüdud jooke</v-card-title>
-            <v-card-text>
-              <h2>{{ totalDrinksSold }}</h2>
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-card>
-            <v-card-title>Klientide arv</v-card-title>
-            <v-card-text>
-              <h2>{{ totalCustomers }}</h2>
-            </v-card-text>
-          </v-card>
+          <!-- Summary Stats -->
+          <v-row>
+            <v-col>
+              <v-card>
+                <v-card-text>
+                  <h2>Kokku müüdud jooke: {{ totalDrinksSold }}</h2>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            </v-row>
+          <v-row>
+            <v-col>
+              <v-card>
+                <v-card-text>
+                  <h2>Klientide arv: {{ totalCustomers }}</h2>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-col>
       </v-row>
     </div>
@@ -101,11 +101,6 @@ const bills = ref<BillDetail[]>([]);
 const isFetchingBills = ref(true);
 const toast = useToast();
 
-// Computed properties for statistics
-const totalBills = computed(() => {
-  return bills.value.reduce((sum, bill) => sum + parseFloat(bill.bill), 0).toFixed(2);
-});
-
 const totalCustomers = computed(() => {
   return bills.value.length;
 });
@@ -147,7 +142,7 @@ const drinksChartData = computed(() => {
 
   const sortedDrinks = Object.entries(drinkCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10); // Show top 10 drinks
+    .slice(0, 10); // Show the top 10 drinks
 
   const colors = [
     '#FF6384',
@@ -156,10 +151,10 @@ const drinksChartData = computed(() => {
     '#4BC0C0',
     '#9966FF',
     '#FF9F40',
-    '#FF6384',
+    '#4f6df6',
     '#C9CBCF',
-    '#4BC0C0',
-    '#FF9F40'
+    '#e122d2',
+    '#0ce84f'
   ];
 
   return {
