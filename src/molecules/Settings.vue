@@ -53,18 +53,30 @@
           variant="tonal"
         />
       </v-list-item>
+      <v-list-item class="pl-6">
+        <v-btn
+          @click="syncNow"
+          :loading="isSyncing"
+          prepend-icon="mdi-sync"
+          text="Sünkrooni"
+          size="small"
+          variant="tonal"
+        />
+      </v-list-item>
     </v-list>
   </v-menu>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import axios from "axios";
 import {API_URL, setApiUrl, useMainStore} from "@/api/MainStore";
 import {useToast} from "vue-toastification";
 
 const mainStore = useMainStore();
 const toast = useToast();
 const editableApiUrl = ref(API_URL);
+const isSyncing = ref(false);
 
 function updateApiUrl() {
   if (editableApiUrl.value && editableApiUrl.value.trim() !== '') {
@@ -80,5 +92,24 @@ function resetApiUrl() {
   setApiUrl(defaultUrl);
   mainStore.apiUrl = defaultUrl;
   toast.success("API URL taastatud vaikimisi väärtusele");
+}
+
+async function syncNow() {
+  if (isSyncing.value) return;
+  isSyncing.value = true;
+  try {
+    const response = await axios.post(API_URL + '/admin/sync');
+    if (response && response.data && response.data.synced === true) {
+      toast.success('Sünkroonimine õnnestus');
+    } else {
+      const err = response && response.data && response.data.error ? response.data.error : 'Tundmatu viga';
+      toast.error('Sünkroonimine ebaõnnestus: ' + err);
+    }
+  } catch (e) {
+    const errMsg = e?.response?.data?.error || e?.message || String(e);
+    toast.error('Sünkroonimine ebaõnnestus: ' + errMsg);
+  } finally {
+    isSyncing.value = false;
+  }
 }
 </script>
