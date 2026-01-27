@@ -52,7 +52,6 @@ import axios from "axios";
 import {useToast} from "vue-toastification";
 import {onMounted, ref} from "vue";
 import {API_URL} from "@/api/MainStore";
-import { ToastContent } from "vue-toastification/dist/types/types";
 
 const sumOfBills = ref(0)
 const profit = ref(0)
@@ -112,12 +111,12 @@ function sumTheBills() {
   profit.value = sum + profitSum;
 }
 
-const showSuccessToast = (text: ToastContent) => {
+const showSuccessToast = (text: any) => {
   toast.success(text);
   isSubmitting.value = false
 }
 
-const showErrorToast = (text: ToastContent) => {
+const showErrorToast = (text: any) => {
   toast.error(text);
   isSubmitting.value = false
 }
