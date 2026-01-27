@@ -62,10 +62,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import axios from 'axios';
-import { useToast } from 'vue-toastification';
-import { API_URL } from '@/api/MainStore';
+import { computed, onMounted } from 'vue';
+import { useMainStore } from '@/api/MainStore';
 import {
   Chart as ChartJS,
   Title,
@@ -97,9 +95,9 @@ interface BillDetail {
   drinks: { [key: string]: number };
 }
 
-const bills = ref<BillDetail[]>([]);
-const isFetchingBills = ref(true);
-const toast = useToast();
+const mainStore = useMainStore();
+const bills = computed<BillDetail[]>(() => mainStore.bills as BillDetail[]);
+const isFetchingBills = computed(() => mainStore.isFetchingBills);
 
 const totalCustomers = computed(() => {
   return bills.value.length;
@@ -203,23 +201,7 @@ const pieChartOptions = {
   }
 };
 
-const getBills = async (reFetchTimeout: number) => {
-  try {
-    console.log('Fetching bills for statistics');
-    const response = await axios.get(API_URL + '/bills');
-    bills.value = response.data;
-    isFetchingBills.value = false;
-    toast.success('Statistika laetud');
-  } catch (error) {
-    console.error('Error fetching bills:', error);
-    toast.error('Statistika laadimine ebaõnnestus');
-    setTimeout(() => {
-      getBills(reFetchTimeout * 1.5);
-    }, reFetchTimeout);
-  }
-};
-
 onMounted(() => {
-  getBills(1000);
+  mainStore.fetchBills(1000);
 });
 </script>

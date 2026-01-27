@@ -6,6 +6,12 @@ import {v4 as uuidv4} from "uuid";
 
 const toast = useToast();
 
+interface BillDetail {
+  name: string;
+  bill: string;
+  drinks: { [key: string]: number };
+}
+
 // Get API_URL from localStorage or use default
 const DEFAULT_API_URL = "http://localhost:5000";
 export let API_URL: string = localStorage.getItem("API_URL") || DEFAULT_API_URL;
@@ -47,6 +53,9 @@ export const useMainStore = defineStore('main', {
     sohvik: false,
     isConnected: true,
     connectionCheckInterval: null as number | null,
+
+    bills: [] as BillDetail[],
+    isFetchingBills: false,
   }),
   actions: {
     async checkConnection() {
@@ -147,6 +156,23 @@ export const useMainStore = defineStore('main', {
       } catch (error) {
         console.error("Error fetching orders", error);
         showErrorToast("Tellimuste laadimine ebaõnnestus");
+      }
+    },
+
+    async fetchBills(reFetchTimeout: number = 1000) {
+      try {
+        console.log('Fetching bills for statistics (store)');
+        this.isFetchingBills = true;
+        const response = await axios.get(API_URL + '/bills');
+        this.bills = response.data;
+        this.isFetchingBills = false;
+        showSuccessToast('Statistika laetud');
+      } catch (error) {
+        console.error('Error fetching bills:', error);
+        showErrorToast('Statistika laadimine ebaõnnestus');
+        setTimeout(() => {
+          this.fetchBills(reFetchTimeout * 1.5);
+        }, reFetchTimeout);
       }
     },
 
