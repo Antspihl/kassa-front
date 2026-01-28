@@ -6,6 +6,7 @@
            size="x-large" :active="false" variant="text" height="64" to="/arved" text="Arved"/>
     <v-btn :disabled="Object.keys(mainStore.currentRequest).length !== 0"
            size="x-large" :active="false" variant="text" height="64" to="/statistika" text="Statistika"/>
+    <v-btn size="x-large" :active="false" variant="text" height="64" to="/logi" text="Logi"/>
     <v-spacer></v-spacer>
     <v-tooltip
       location="bottom"
@@ -33,9 +34,20 @@
         />
       </template>
       <p>Nuppude legend:</p>
-      <p><v-icon>mdi-circle-small</v-icon>Shift: fokuseerib nimelahtri</p>
-      <p><v-icon>mdi-circle-small</v-icon>1: viib valikut <v-icon>mdi-arrow-up-bold</v-icon></p>
-      <p><v-icon>mdi-circle-small</v-icon>2: viib valikut <v-icon>mdi-arrow-down-bold</v-icon></p>
+      <p>
+        <v-icon>mdi-circle-small</v-icon>
+        Shift: fokuseerib nimelahtri
+      </p>
+      <p>
+        <v-icon>mdi-circle-small</v-icon>
+        1: viib valikut
+        <v-icon>mdi-arrow-up-bold</v-icon>
+      </p>
+      <p>
+        <v-icon>mdi-circle-small</v-icon>
+        2: viib valikut
+        <v-icon>mdi-arrow-down-bold</v-icon>
+      </p>
     </v-tooltip>
     <v-switch
       class=" pt-5 pl-4"

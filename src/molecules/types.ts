@@ -29,3 +29,12 @@ export type BarRequest = {
   order: Order;
   oldOrder: Order;
 }
+
+export type LogItem = {
+  timestamp: string,
+  order_id: string,
+  customer_name: string,
+  drink_name: string,
+  quantity: number,
+  cancellation_timestamp?: string,
+}
