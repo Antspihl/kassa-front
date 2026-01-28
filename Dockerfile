@@ -1,25 +1,23 @@
 FROM node:22.20.0-alpine
 LABEL authors="Antspihl"
 
-# install pnpm
-RUN npm install -g pnpm
-
-# install simple http server for serving static content
+# install http-server for serving static content
 RUN npm install -g http-server
 
 # make the 'app' folder the current working directory
 WORKDIR /app
 
-# copy pnpm lock file and package.json
-COPY package.json pnpm-lock.yaml ./
+# copy package files
+COPY package.json package-lock.json ./
 
-# install project dependencies
-RUN pnpm install --frozen-lockfile
+# install project dependencies using npm
+RUN npm ci
 
 # copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
 
-RUN pnpm run build
+# build the frontend
+RUN npm run build
 
 ENV PORT=3000
 EXPOSE 3000
