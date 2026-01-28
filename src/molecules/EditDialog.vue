@@ -2,6 +2,7 @@
   <v-btn
     color="info"
     class="mx-4"
+    size="small"
     @click="openEditDialog"
     icon="mdi-pencil"
     :loading="editing"

@@ -21,6 +21,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src", "src/molecules/types.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }

@@ -1,5 +1,5 @@
 export type Order = {
-  id: number;
+  id: string;
   drink: string;
   name: string;
   amount: number;
@@ -18,6 +18,7 @@ export type Drink = {
 }
 
 export type OrderForm = {
+  order_id: string,
   customer_name: string,
   drink_name: string,
   quantity: number,
@@ -27,4 +28,13 @@ export type BarRequest = {
   type: number; // 0 - add, 1 - change, 2 - cancel
   order: Order;
   oldOrder: Order;
+}
+
+export type LogItem = {
+  timestamp: string,
+  order_id: string,
+  customer_name: string,
+  drink_name: string,
+  quantity: number,
+  cancellation_timestamp?: string,
 }

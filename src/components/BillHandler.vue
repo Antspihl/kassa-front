@@ -67,20 +67,19 @@ interface BillDetail {
 
 const bills = ref<BillDetail[]>([])
 const headers = [
-  { title: 'Nimi', key: 'name' },
-  { title: 'Arve', key: 'bill' }
+  {title: 'Nimi', key: 'name'},
+  {title: 'Arve', key: 'bill'}
 ]
 
 const isFetchingBills = ref(true)
 const isSubmitting = ref(false)
 const toast = useToast()
 
-const getBills = async (reFetchTimeout) => {
+const getBills = async (reFetchTimeout: number) => {
   try {
     console.log("Fetching bills");
     const response = await axios.get(billsUrl);
     showSuccessToast("Arved laetud");
-    console.log(response.data);
     bills.value = response.data;
     isFetchingBills.value = false;
     sumTheBills();
@@ -95,26 +94,29 @@ const getBills = async (reFetchTimeout) => {
 
 function sumTheBills() {
   let sum = 0;
-  let sum2;
+  let profitSum = 0;
+
   bills.value.forEach((bill) => {
-    sum += parseInt(bill.bill);
-  })
-  sumOfBills.value = sum;
-  bills.value.forEach((bill) => {
-    if (bill.name === "Maja arve" || bill.name === "Baari arve") {
-      sum -= parseInt(bill.bill);
+    const billAmount = parseFloat(bill.bill);
+    if (!isNaN(billAmount)) {
+      sum += billAmount;
+      if (bill.name.split(' ').length == 1) {
+        console.table(bill);
+        profitSum -= billAmount;
+      }
     }
-  })
-  sum2 = sum
-  profit.value = sum2;
+  });
+
+  sumOfBills.value = sum;
+  profit.value = sum + profitSum;
 }
 
-const showSuccessToast = (text) => {
+const showSuccessToast = (text: any) => {
   toast.success(text);
   isSubmitting.value = false
 }
 
-const showErrorToast = (text) => {
+const showErrorToast = (text: any) => {
   toast.error(text);
   isSubmitting.value = false
 }

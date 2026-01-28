@@ -1,13 +1,27 @@
 import {defineStore} from "pinia";
 import axios from "axios";
-import {BarRequest, Drink, Order, OrderForm} from "@/molecules/types";
+import {BarRequest, Drink, LogItem, Order, OrderForm} from "@/molecules/types";
 import {useToast} from "vue-toastification";
+import {v4 as uuidv4} from "uuid";
 
 const toast = useToast();
 
-//export const API_URL: string = "http://localhost:5000";
-export const API_URL: string = "http://192.168.192.1:5000";
+interface BillDetail {
+  name: string;
+  bill: string;
+  drinks: { [key: string]: number };
+}
+
+// Get API_URL from localStorage or use default
+const DEFAULT_API_URL = "http://localhost:5000";
+export let API_URL: string = localStorage.getItem("API_URL") || DEFAULT_API_URL;
+
 export const API_HEADERS: {} = {'content-type': 'application/json'};
+
+export function setApiUrl(url: string) {
+  API_URL = url;
+  localStorage.setItem("API_URL", url);
+}
 
 function showSuccessToast(text: string) {
   toast.success(text);
@@ -19,14 +33,14 @@ function showErrorToast(text: string) {
 
 export const useMainStore = defineStore('main', {
   state: () => ({
-    orderId: 0,
+    apiUrl: API_URL,
     SAVED_ORDERS_AMOUNT: 20,
     SHOWN_ORDERS_AMOUNT: 10,
     drinks: [] as string[],
     drinks2: [] as Drink[],
     names: [] as string[],
     currentOrder: {
-      id: 0,
+      id: "",
       drink: "" as string,
       name: "" as string,
       amount: 1,
@@ -34,11 +48,56 @@ export const useMainStore = defineStore('main', {
     } as Order,
     orders: [] as Order[],
     currentRequest: {} as BarRequest,
-    requestList: [] as BarRequest[],
+    requestList: JSON.parse(localStorage.getItem("requestList") || "[]") as BarRequest[],
     sendingRequests: false,
     sohvik: true,
+    isConnected: true,
+    connectionCheckInterval: null as number | null,
+
+    bills: [] as BillDetail[],
+    isFetchingBills: false,
+    logs: [] as LogItem[],
+    isFetchingLogs: false,
   }),
   actions: {
+    async checkConnection() {
+      try {
+        await axios.get(API_URL, {timeout: 5000});
+        if (!this.isConnected) {
+          this.isConnected = true;
+          showSuccessToast("Ühendus taastatud");
+          if (this.requestList.length > 0) {
+            await this.startSendingRequests();
+          }
+        }
+        return true;
+      } catch (error) {
+        if (this.isConnected) {
+          this.isConnected = false;
+          showErrorToast("Ühendus serveriga katkes");
+        }
+        return false;
+      }
+    },
+
+    startConnectionCheck() {
+      this.checkConnection();
+
+      if (this.connectionCheckInterval) {
+        clearInterval(this.connectionCheckInterval);
+      }
+      this.connectionCheckInterval = window.setInterval(() => {
+        this.checkConnection();
+      }, 5000);
+    },
+
+    stopConnectionCheck() {
+      if (this.connectionCheckInterval) {
+        clearInterval(this.connectionCheckInterval);
+        this.connectionCheckInterval = null;
+      }
+    },
+
     async fetchDrinks() {
       console.log("Fetching drinks")
       this.drinks = []
@@ -84,15 +143,14 @@ export const useMainStore = defineStore('main', {
       console.log("Fetching orders")
       try {
         const response = await axios.get(API_URL + "/orders");
-        let newOrder: Order;
-        for (let order in response.data) {
-          newOrder = {
-            id: this.orderId++,
-            drink: response.data[order].drink_name,
-            name: response.data[order].customer_name,
-            amount: response.data[order].quantity,
+        for (const item of response.data) {
+          const newOrder: Order = {
+            id: item.order_id || item.id,
+            drink: item.drink_name || item.drink,
+            name: item.customer_name || item.customer,
+            amount: item.quantity,
             isSent: true,
-          }
+          };
           this.addToOrders(newOrder);
         }
         localStorage.setItem("orders", JSON.stringify(this.orders));
@@ -100,6 +158,38 @@ export const useMainStore = defineStore('main', {
       } catch (error) {
         console.error("Error fetching orders", error);
         showErrorToast("Tellimuste laadimine ebaõnnestus");
+      }
+    },
+
+    async fetchBills(reFetchTimeout: number = 1000) {
+      try {
+        console.log('Fetching bills for statistics (store)');
+        this.isFetchingBills = true;
+        const response = await axios.get(API_URL + '/bills');
+        this.bills = response.data;
+        this.isFetchingBills = false;
+        showSuccessToast('Statistika laetud');
+      } catch (error) {
+        console.error('Error fetching bills:', error);
+        showErrorToast('Statistika laadimine ebaõnnestus');
+        setTimeout(() => {
+          this.fetchBills(reFetchTimeout * 1.5);
+        }, reFetchTimeout);
+      }
+    },
+
+    async getLogs() {
+      try {
+        this.isFetchingLogs = true;
+        const response = await axios.get(API_URL + "/admin/logs");
+        this.logs = response.data || [];
+        this.isFetchingLogs = false;
+        return this.logs;
+      } catch (error) {
+        console.error("Error fetching logs", error);
+        showErrorToast("Logide laadimine ebaõnnestus");
+        this.isFetchingLogs = false;
+        return [];
       }
     },
 
@@ -144,8 +234,9 @@ export const useMainStore = defineStore('main', {
         showErrorToast("Vali jook ja nimi");
         return;
       }
-      newOrder.id = this.orderId++;
+      newOrder.id = uuidv4();
       this.requestList.push({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
+      localStorage.setItem("requestList", JSON.stringify(this.requestList));
       this.startSendingRequests();
     },
 
@@ -180,11 +271,24 @@ export const useMainStore = defineStore('main', {
 
     async startSendingRequests() {
       if (this.sendingRequests || this.requestList.length <= 0) return;
+
+      if (!this.isConnected) {
+        console.log("Not connected, waiting for connection...");
+        return;
+      }
+
       console.log("Sending requests")
       this.sendingRequests = true;
       while (this.requestList.length > 0) {
+        if (!this.isConnected) {
+          console.log("Connection lost during sending, pausing...");
+          this.sendingRequests = false;
+          return;
+        }
+
         // @ts-ignore
         this.currentRequest = this.requestList.shift();
+        localStorage.setItem("requestList", JSON.stringify(this.requestList));
         if (!this.currentRequest) continue;
         if (this.currentRequest.type === 0) {
           await this.sendAddOrder(this.currentRequest.order);
@@ -198,10 +302,11 @@ export const useMainStore = defineStore('main', {
       this.sendingRequests = false;
     },
 
-    async sendAddOrder(newOrder: Order, timeOut: number = 0) {
+    async sendAddOrder(newOrder: Order) {
       console.log("Adding order", newOrder)
 
       const sentOrder: OrderForm = {
+        order_id: newOrder.id,
         customer_name: newOrder.name,
         drink_name: newOrder.drink,
         quantity: newOrder.amount,
@@ -216,16 +321,19 @@ export const useMainStore = defineStore('main', {
         console.error("Error adding order", error);
         showErrorToast("Tellimuse esitamine ebaõnnestus:\n"
           + newOrder.name + ": " + newOrder.amount + "x" + newOrder.drink);
-        setTimeout(() => {
-        }, timeOut)
-        await this.sendAddOrder(newOrder, 5000);
+        // Re-add to the front of the queue instead of infinite retry
+        this.requestList.unshift({type: 0, order: newOrder, oldOrder: newOrder} as BarRequest);
+        localStorage.setItem("requestList", JSON.stringify(this.requestList));
+        this.sendingRequests = false;
+        // Mark as disconnected to trigger connection check
+        this.isConnected = false;
       }
     },
 
     async sendAddOrders(orders: OrderForm[]) {
       console.log("Adding orders", orders)
       try {
-      await axios.post(API_URL + "/orders", { orders }, { headers: API_HEADERS });
+        await axios.post(API_URL + "/orders", {orders}, {headers: API_HEADERS});
         showSuccessToast("Tellimused esitatud");
       } catch (error) {
         console.error("Error adding orders", error);
@@ -233,7 +341,7 @@ export const useMainStore = defineStore('main', {
       }
       for (const order of orders) {
         const newOrder: Order = {
-          id: this.orderId++,
+          id: order.order_id || uuidv4(),
           drink: order.drink_name,
           name: order.customer_name,
           amount: order.quantity,
@@ -250,29 +358,131 @@ export const useMainStore = defineStore('main', {
         return;
       }
 
-      const sentOrder: OrderForm = {
-        customer_name: order.name,
-        drink_name: order.drink,
-        quantity: -order.amount,
-      }
       try {
-        await axios.post(API_URL + "/order", sentOrder, {headers: API_HEADERS});
-        this.removeFromOrders(order);
-        showSuccessToast("Tellimus tühistatud:\n"
-          + order.name + ": " + order.amount + "x" + order.drink);
-      } catch (error) {
+        const response = await axios.post(API_URL + "/order/cancel", {order_id: order.id}, {headers: API_HEADERS});
+        if (response.status === 200 && response.data && response.data.cancelled) {
+          this.removeFromOrders(order);
+          showSuccessToast("Tellimus tühistatud:\n" + order.name + ": " + order.amount + "x" + order.drink);
+        } else {
+          const reason = response.data && response.data.reason ? response.data.reason : '';
+          showErrorToast("Tellimuse tühistamine ebaõnnestus" + (reason ? (": " + reason) : ""));
+          this.requestList.unshift({type: 2, order: order, oldOrder: order} as BarRequest);
+          localStorage.setItem("requestList", JSON.stringify(this.requestList));
+          this.sendingRequests = false;
+        }
+      } catch (error: any) {
         console.error("Error cancelling order", error);
-        showErrorToast("Tellimuse tühistamine ebaõnnestus:\n"
-          + order.name + ": " + order.amount + "x" + order.drink);
+        if (error.response) {
+          if (error.response.status === 404) {
+            showErrorToast("Tellimust ei leitud (404)");
+          } else if (error.response.status === 400) {
+            showErrorToast("Vigane tellimuse payload (400)");
+          } else {
+            showErrorToast("Tellimuse tühistamine ebaõnnestus");
+            this.requestList.unshift({type: 2, order: order, oldOrder: order} as BarRequest);
+            localStorage.setItem("requestList", JSON.stringify(this.requestList));
+            this.sendingRequests = false;
+          }
+        } else {
+          showErrorToast("Tellimuse tühistamine ebaõnnestus (ühendus)");
+          this.requestList.unshift({type: 2, order: order, oldOrder: order} as BarRequest);
+          localStorage.setItem("requestList", JSON.stringify(this.requestList));
+          this.sendingRequests = false;
+          this.isConnected = false;
+        }
       }
     },
 
     async sendChangeOrder(oldOrder: Order, editedOrder: Order) {
       const old = {...oldOrder};
       const edited = {...editedOrder};
-      console.log("Changing order from", old, "to", edited)
-      await this.sendCancelOrder(old);
-      await this.sendAddOrder(edited);
-    }
+      console.log("Changing order from", old, "to", edited);
+      const payload = {
+        old_order_id: old.id,
+        order: {
+          customer_name: edited.name,
+          drink_name: edited.drink,
+          quantity: edited.amount,
+        }
+      }
+
+      try {
+        const response = await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
+        if (response.status === 200 && response.data && (response.data.updated || response.data.success)) {
+          const newOrderId = response.data.new_order_id || edited.id;
+          const idx = this.orders.findIndex(o => o.id === old.id);
+          const updatedOrder: Order = {
+            id: newOrderId,
+            name: edited.name,
+            drink: edited.drink,
+            amount: edited.amount,
+            isSent: true,
+          };
+          if (idx !== -1) {
+            this.orders[idx] = updatedOrder;
+          } else {
+            this.addToOrders(updatedOrder);
+          }
+          localStorage.setItem("orders", JSON.stringify(this.orders));
+          showSuccessToast("Tellimus muudetud:\n" + edited.name + ": " + edited.amount + "x" + edited.drink);
+        } else {
+          const reason = response.data && response.data.reason ? response.data.reason : '';
+          showErrorToast("Tellimuse muutmine ebaõnnestus" + (reason ? (": " + reason) : ""));
+          this.requestList.unshift({type: 1, order: edited, oldOrder: old} as BarRequest);
+          localStorage.setItem("requestList", JSON.stringify(this.requestList));
+          this.sendingRequests = false;
+        }
+      } catch (error: any) {
+        console.error("Error changing order", error);
+        if (error.response) {
+          if (error.response.status === 404) {
+            showErrorToast("Tellimust ei leitud (404)");
+          } else if (error.response.status === 400) {
+            showErrorToast("Vigane tellimuse payload (400)");
+          } else {
+            showErrorToast("Tellimuse muutmine ebaõnnestus");
+            this.requestList.unshift({type: 1, order: edited, oldOrder: old} as BarRequest);
+            localStorage.setItem("requestList", JSON.stringify(this.requestList));
+            this.sendingRequests = false;
+          }
+        } else {
+          showErrorToast("Tellimuse muutmine ebaõnnestus (ühendus)");
+          this.requestList.unshift({type: 1, order: edited, oldOrder: old} as BarRequest);
+          localStorage.setItem("requestList", JSON.stringify(this.requestList));
+          this.sendingRequests = false;
+          this.isConnected = false;
+        }
+      }
+    },
+
+    async adminCancelLog(order_id: string) {
+      try {
+        await axios.post(API_URL + "/order/cancel", {order_id}, {headers: API_HEADERS});
+        showSuccessToast('Tellimus tühistatud (admin)');
+        await this.getLogs();
+      } catch (error) {
+        console.error('Admin cancel error', error);
+        showErrorToast('Tellimuse tühistamine ebaõnnestus (admin)');
+      }
+    },
+
+    async adminChangeLog(old_order_id: string, edited: {
+      customer_name: string,
+      drink_name: string,
+      quantity: number
+    }) {
+      try {
+        const payload = {
+          old_order_id,
+          order: edited
+        };
+        await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
+        showSuccessToast('Tellimus muudetud (admin)');
+        await this.getLogs();
+      } catch (error) {
+        console.error('Admin change error', error);
+        showErrorToast('Tellimuse muutmine ebaõnnestus (admin)');
+      }
+    },
   }
 })

@@ -18,7 +18,6 @@ import {onMounted} from "vue";
 import {useMainStore} from "@/api/MainStore";
 import DrinkForm from "@/molecules/DrinkForm.vue";
 import OrderList from "@/molecules/OrderList.vue";
-import {Order} from "@/molecules/types";
 import RequestList from "@/molecules/RequestList.vue";
 import DrinkForm2 from "@/molecules/DrinkForm2.vue";
 
@@ -26,18 +25,12 @@ const mainStore = useMainStore();
 
 
 onMounted(async () => {
-  const items = ["orders", "names", "drinks", "drinks2"];
+  const items = ["orders", "names", "drinks", "drinks2", "requestList"];
   for (const item of items) {
     const itemString = localStorage.getItem(item);
     if (itemString) {
       if (item === "orders") {
-        const parsedItem: Order[] = JSON.parse(itemString);
-        parsedItem.forEach(order => {
-          if (order.id > mainStore.orderId) {
-            mainStore.orderId = order.id;
-          }
-        });
-        mainStore.orders = parsedItem;
+        mainStore.orders = JSON.parse(itemString);
       }
       if (item === "names") {
         mainStore.names = JSON.parse(itemString);
@@ -45,6 +38,8 @@ onMounted(async () => {
         mainStore.drinks = JSON.parse(itemString);
       } else if (item === "drinks2") {
         mainStore.drinks2 = JSON.parse(itemString);
+      } else if (item === "requestList") {
+        mainStore.requestList = JSON.parse(itemString);
       }
     } else if (item === "names") {
       await mainStore.fetchNames();
@@ -59,8 +54,13 @@ onMounted(async () => {
     name: "",
     drink: mainStore.drinks[0],
     amount: 1,
-    id: null,
+    id: "",
     isSent: false
+  }
+
+  // Restart sending requests if there are any pending
+  if (mainStore.requestList.length > 0) {
+    mainStore.startSendingRequests();
   }
 });
 </script>
