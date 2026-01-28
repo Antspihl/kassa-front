@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import axios from "axios";
-import {BarRequest, Drink, Order, OrderForm} from "@/molecules/types";
+import {BarRequest, Drink, LogItem, Order, OrderForm} from "@/molecules/types";
 import {useToast} from "vue-toastification";
 import {v4 as uuidv4} from "uuid";
 
@@ -56,6 +56,8 @@ export const useMainStore = defineStore('main', {
 
     bills: [] as BillDetail[],
     isFetchingBills: false,
+    logs: [] as LogItem[],
+    isFetchingLogs: false,
   }),
   actions: {
     async checkConnection() {
@@ -173,6 +175,21 @@ export const useMainStore = defineStore('main', {
         setTimeout(() => {
           this.fetchBills(reFetchTimeout * 1.5);
         }, reFetchTimeout);
+      }
+    },
+
+    async getLogs() {
+      try {
+        this.isFetchingLogs = true;
+        const response = await axios.get(API_URL + "/admin/logs");
+        this.logs = response.data || [];
+        this.isFetchingLogs = false;
+        return this.logs;
+      } catch (error) {
+        console.error("Error fetching logs", error);
+        showErrorToast("Logide laadimine ebaõnnestus");
+        this.isFetchingLogs = false;
+        return [];
       }
     },
 
@@ -436,6 +453,36 @@ export const useMainStore = defineStore('main', {
           this.isConnected = false;
         }
       }
-    }
+    },
+
+    async adminCancelLog(order_id: string) {
+      try {
+        await axios.post(API_URL + "/order/cancel", {order_id}, {headers: API_HEADERS});
+        showSuccessToast('Tellimus tühistatud (admin)');
+        await this.getLogs();
+      } catch (error) {
+        console.error('Admin cancel error', error);
+        showErrorToast('Tellimuse tühistamine ebaõnnestus (admin)');
+      }
+    },
+
+    async adminChangeLog(old_order_id: string, edited: {
+      customer_name: string,
+      drink_name: string,
+      quantity: number
+    }) {
+      try {
+        const payload = {
+          old_order_id,
+          order: edited
+        };
+        await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
+        showSuccessToast('Tellimus muudetud (admin)');
+        await this.getLogs();
+      } catch (error) {
+        console.error('Admin change error', error);
+        showErrorToast('Tellimuse muutmine ebaõnnestus (admin)');
+      }
+    },
   }
 })
