@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import axios from "axios";
-import {BarRequest, Drink, LogItem, Order, OrderForm} from "@/molecules/types";
+import {BarRequest, Drink, LogItem, Order, OrderForm, tempOrder} from "@/molecules/types";
 import {useToast} from "vue-toastification";
 import {v4 as uuidv4} from "uuid";
 
@@ -95,6 +95,14 @@ export const useMainStore = defineStore('main', {
       if (this.connectionCheckInterval) {
         clearInterval(this.connectionCheckInterval);
         this.connectionCheckInterval = null;
+      }
+    },
+
+    async updateDrinks() {
+      if (this.sohvik) {
+        await this.fetchDrinks2()
+      } else {
+        await this.fetchDrinks();
       }
     },
 
@@ -249,7 +257,7 @@ export const useMainStore = defineStore('main', {
       }
       console.log("Adding change order request", oldOrder, editedOrder)
       if (!editedOrder.drink || !editedOrder.name || !oldOrder.drink || !oldOrder.name) {
-        showErrorToast("");
+        showErrorToast("Tellimuse muutmine ebaõnnestus: vigased tellimuse andmed");
         return;
       }
       this.requestList.push({type: 1, order: editedOrder, oldOrder: oldOrder} as BarRequest);
@@ -349,6 +357,17 @@ export const useMainStore = defineStore('main', {
         }
         this.addToOrders(newOrder);
       }
+    },
+
+    async sendTempOrders(orders: tempOrder[]) {
+      if (!orders || orders.length === 0) return;
+      const fullOrders: OrderForm[] = orders.map(o => ({
+        order_id: uuidv4(),
+        customer_name: "Sohviku klient",
+        drink_name: o.drink,
+        quantity: o.amount,
+      }));
+      await this.sendAddOrders(fullOrders);
     },
 
     async sendCancelOrder(order: Order) {
@@ -463,25 +482,6 @@ export const useMainStore = defineStore('main', {
       } catch (error) {
         console.error('Admin cancel error', error);
         showErrorToast('Tellimuse tühistamine ebaõnnestus (admin)');
-      }
-    },
-
-    async adminChangeLog(old_order_id: string, edited: {
-      customer_name: string,
-      drink_name: string,
-      quantity: number
-    }) {
-      try {
-        const payload = {
-          old_order_id,
-          order: edited
-        };
-        await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
-        showSuccessToast('Tellimus muudetud (admin)');
-        await this.getLogs();
-      } catch (error) {
-        console.error('Admin change error', error);
-        showErrorToast('Tellimuse muutmine ebaõnnestus (admin)');
       }
     },
   }

@@ -3,20 +3,20 @@
     <h4>Vali kook ja kogus</h4>
     <v-form class="mt-2">
       <v-chip-group
-        v-if="mainStore.drinks.length > 0"
+        v-if="mainStore.drinks2.length > 0"
         v-model="mainStore.currentOrder.drink"
         selected-class="text-deep-orange-darken-3"
         mandatory
         column
       >
         <v-chip
-          v-for="drink in mainStore.drinks"
-          :key="drink"
-          :value="drink"
+          v-for="drink in mainStore.drinks2"
+          :key="drink.name"
+          :value="drink.name"
           @click="mainStore.currentOrder.amount = 1"
-          :class="{'v-chip--active': mainStore.currentOrder.drink === drink}"
+          :class="{'v-chip--active': mainStore.currentOrder.drink === drink.name}"
         >
-          {{ drink }}
+          {{ drink.name }}
         </v-chip>
       </v-chip-group>
       <v-chip-group
@@ -47,7 +47,6 @@
           class="mx-4"
           size="large"
           @click="addOrder"
-          :loading="adding"
           text="Lisa"
         />
         <v-btn
@@ -60,16 +59,34 @@
         <v-dialog max-width="500" v-model="showDialog">
           <v-card title="Maksa:">
             <v-card-text>
-              <p v-for="(order, index) in orders" :key="index">
-                {{ order.drink }}: {{ order.amount }}x {{ order.price }}€ => {{ order.amount * order.price }}€
-              </p>
-              ==========================================<br>
-              Summa => {{ orders.reduce((acc, order) => acc + (order.amount * order.price), 0) }}€
+              <v-list dense>
+                <v-list-item v-for="(order, index) in orders" :key="index">
+                  <v-row align="center">
+                    <v-col cols="6">
+                      <v-list-item-title class="text-left font-weight-medium">{{ order.drink }}</v-list-item-title>
+                    </v-col>
+                    <v-col cols="6">
+                      <v-list-item-subtitle class="text-right text--secondary">{{ order.amount }} × {{ (order.price) }}€
+                        => {{ order.amount * order.price }}€
+                      </v-list-item-subtitle>
+                    </v-col>
+                  </v-row>
+                </v-list-item>
+              </v-list>
+
+              <v-divider class="my-2"/>
+
+              <v-row align="center">
+                <v-col cols="6" class="text-left font-weight-medium">Summa</v-col>
+                <v-col cols="6" class="text-right font-weight-medium">
+                  {{ orders.reduce((acc, order) => acc + (order.amount * order.price), 0) }}€
+                </v-col>
+              </v-row>
             </v-card-text>
 
             <v-card-actions>
               <v-btn
-                text="Cancel"
+                text="Tühista"
                 color="error"
                 @click="showDialog=false"
               ></v-btn>
@@ -99,6 +116,7 @@
               <v-btn
                 class="mr-2"
                 color="accent"
+                size="small"
                 @click="removeOrder(order)"
                 icon="mdi-close"
               />
@@ -114,10 +132,9 @@
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
 import {ref} from "vue";
-import {OrderForm, tempOrder} from "@/molecules/types";
+import {tempOrder} from "@/molecules/types";
 
 const mainStore = useMainStore();
-const adding = ref(false)
 
 const showDialog = ref(false)
 const sending = ref(false)
@@ -136,17 +153,15 @@ function changeAmount(amount: number) {
   mainStore.currentOrder.amount += amount;
 }
 
-function addOrder() {
-  adding.value = true;
+async function addOrder() {
   const drinkObj = mainStore.drinks2.find(d => d.name === mainStore.currentOrder.drink);
-  let order: tempOrder = {
+  const order: tempOrder = {
     drink: mainStore.currentOrder.drink,
     amount: mainStore.currentOrder.amount,
-    price: drinkObj?.price || 0
+    price: drinkObj?.price ?? 0
   }
   orders.value.push(order);
   mainStore.currentOrder.amount = 1;
-  adding.value = false;
 }
 
 function removeOrder(order: tempOrder) {
@@ -159,16 +174,13 @@ function removeOrder(order: tempOrder) {
 async function sendOrder(orders1: tempOrder[]) {
   if (orders1.length == 0) return;
   sending.value = true;
-  let fullOrders: OrderForm[] = orders1.map(order => ({
-    customer_name: "Sohviku klient",
-    drink_name: order.drink,
-    quantity: order.amount,
-  }));
-  console.log(fullOrders.toString())
-  await mainStore.sendAddOrders(fullOrders);
-  orders.value = [];
-  showDialog.value = false;
-  sending.value = false;
+  try {
+    await mainStore.sendTempOrders(orders1);
+    orders.value = [];
+    showDialog.value = false;
+  } finally {
+    sending.value = false;
+  }
 }
 
 </script>
