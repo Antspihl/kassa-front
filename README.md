@@ -10,16 +10,13 @@ npm install
 npm run dev
 ```
 
-### Docker Image Update. Replace [latest] with the version number.
+### One-step rebuild and deploy (u.sh)
+Rebuilds the image, removes any existing container/image for the tag, and runs the new container.
 ```bash
-docker build -t antspihl/kassa-front:[latest] .
+chmod +x u.sh
+./u.sh [tag] [host_port]
 ```
-```bash
-docker login
-```
-```bash
-docker push antspihl/kassa-front:[latest]
-```
+If no tag is provided, it defaults to `dev`. If no port is provided, it defaults to `3000`. The container name is `kassa-front`.
 
 ### Pull and run the image
 

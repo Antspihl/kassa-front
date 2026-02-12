@@ -13,7 +13,7 @@ interface BillDetail {
 }
 
 // Get API_URL from localStorage or use default
-const DEFAULT_API_URL = "http://localhost:5000";
+const DEFAULT_API_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
 export let API_URL: string = localStorage.getItem("API_URL") || DEFAULT_API_URL;
 
 export const API_HEADERS: {} = {'content-type': 'application/json'};
