@@ -1,7 +1,6 @@
 <template>
   <v-btn
     color="info"
-    class="mx-4"
     size="small"
     @click="openEditDialog"
     icon="mdi-pencil"
@@ -16,6 +15,7 @@
           :items="mainStore.names"
           label="Nimi"
           required
+          :disabled="mainStore.sohvik"
         ></v-autocomplete>
 
         <v-chip-group

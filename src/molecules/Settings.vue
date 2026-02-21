@@ -8,7 +8,7 @@
         <v-btn @click="mainStore.fetchNames()" prepend-icon="mdi-account-group" text="Uuenda nimesid"/>
       </v-list-item>
       <v-list-item>
-          <v-btn @click="mainStore.fetchDrinks()" prepend-icon="mdi-glass-cocktail" text="Uuenda jooke"/>
+          <v-btn @click="mainStore.updateDrinks()" prepend-icon="mdi-glass-cocktail" text="Uuenda jooke"/>
       </v-list-item>
       <v-list-item class="pl-6">
         <v-list-item-title>

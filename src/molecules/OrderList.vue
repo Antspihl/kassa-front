@@ -24,14 +24,18 @@
           <v-list-item-action>
             <v-btn
               color="accent"
+              class="mr-2"
               @click="cancelOrder(order)"
               :loading="canceling"
               icon="mdi-close"
+              size="small"
             />
             <EditDialog
               :order="order"
             />
-            {{ order.name }}: {{ order.amount }}x {{ order.drink }}
+            <span class="pl-2">
+              {{ order.name }}: {{ order.amount }}x {{ order.drink }}
+            </span>
           </v-list-item-action>
         </v-list-item>
       </v-list>

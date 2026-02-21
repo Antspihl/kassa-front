@@ -124,6 +124,4 @@ const showErrorToast = (text: any) => {
 onMounted(() => {
   getBills(1000)
 })
-
-
 </script>
