@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import axios from "axios";
-import {BarRequest, Drink, LogItem, Order, OrderForm, tempOrder} from "@/molecules/types";
+import {BarRequest, Drink, DrinkRecord, LogItem, Order, OrderForm, UserRecord, tempOrder} from "@/molecules/types";
 import {useToast} from "vue-toastification";
 import {v4 as uuidv4} from "uuid";
 
@@ -50,7 +50,7 @@ export const useMainStore = defineStore('main', {
     currentRequest: {} as BarRequest,
     requestList: JSON.parse(localStorage.getItem("requestList") || "[]") as BarRequest[],
     sendingRequests: false,
-    sohvik: true,
+    sohvik: JSON.parse(localStorage.getItem("sohvik") || "false") as boolean,
     isConnected: true,
     connectionCheckInterval: null as number | null,
 
@@ -58,8 +58,17 @@ export const useMainStore = defineStore('main', {
     isFetchingBills: false,
     logs: [] as LogItem[],
     isFetchingLogs: false,
+
+    adminDrinks: [] as DrinkRecord[],
+    adminUsers: [] as UserRecord[],
+    isFetchingAdminDrinks: false,
+    isFetchingAdminUsers: false,
   }),
   actions: {
+    setSohvik(value: boolean) {
+      this.sohvik = value;
+      localStorage.setItem("sohvik", JSON.stringify(value));
+    },
     async checkConnection() {
       try {
         await axios.get(API_URL, {timeout: 5000});
@@ -153,9 +162,9 @@ export const useMainStore = defineStore('main', {
         const response = await axios.get(API_URL + "/orders");
         for (const item of response.data) {
           const newOrder: Order = {
-            id: item.order_id || item.id,
-            drink: item.drink_name || item.drink,
-            name: item.customer_name || item.customer,
+            id: item.orderId || item.id,
+            drink: item.drinkName || item.drink,
+            name: item.customerName || item.customer,
             amount: item.quantity,
             isSent: true,
           };
@@ -198,6 +207,146 @@ export const useMainStore = defineStore('main', {
         showErrorToast("Logide laadimine ebaõnnestus");
         this.isFetchingLogs = false;
         return [];
+      }
+    },
+
+    async fetchAdminDrinks() {
+      try {
+        this.isFetchingAdminDrinks = true;
+        const response = await axios.get(API_URL + "/joogid");
+        this.adminDrinks = response.data || [];
+        this.isFetchingAdminDrinks = false;
+        return this.adminDrinks;
+      } catch (error) {
+        console.error("Error fetching admin drinks", error);
+        showErrorToast("Jookide laadimine ebaõnnestus");
+        this.isFetchingAdminDrinks = false;
+        return [];
+      }
+    },
+
+    async getAdminDrink(id: string | number) {
+      try {
+        const response = await axios.get(API_URL + `/joogid/${id}`);
+        return response.data as DrinkRecord;
+      } catch (error) {
+        console.error("Error fetching admin drink", error);
+        showErrorToast("Joogi laadimine ebaõnnestus");
+        return null;
+      }
+    },
+
+    async createAdminDrink(
+      payload: { name: string; price: number },
+      options?: { refresh?: boolean; silent?: boolean }
+    ) {
+      try {
+        await axios.post(API_URL + "/joogid", payload, {headers: API_HEADERS});
+        if (!options?.silent) {
+          showSuccessToast("Jook lisatud");
+        }
+        if (options?.refresh !== false) {
+          await this.fetchAdminDrinks();
+        }
+        return true;
+      } catch (error) {
+        console.error("Error creating admin drink", error);
+        if (!options?.silent) {
+          showErrorToast("Joogi lisamine ebaõnnestus");
+        }
+        return false;
+      }
+    },
+
+    async updateAdminDrink(id: string | number, payload: { name?: string; price?: number }) {
+      try {
+        await axios.put(API_URL + `/joogid/${id}`, payload, {headers: API_HEADERS});
+        showSuccessToast("Jook muudetud");
+        await this.fetchAdminDrinks();
+      } catch (error) {
+        console.error("Error updating admin drink", error);
+        showErrorToast("Joogi muutmine ebaõnnestus");
+      }
+    },
+
+    async deleteAdminDrink(id: string | number) {
+      try {
+        await axios.delete(API_URL + `/joogid/${id}`, {headers: API_HEADERS});
+        showSuccessToast("Jook kustutatud");
+        await this.fetchAdminDrinks();
+      } catch (error) {
+        console.error("Error deleting admin drink", error);
+        showErrorToast("Joogi kustutamine ebaõnnestus");
+      }
+    },
+
+    async fetchAdminUsers() {
+      try {
+        this.isFetchingAdminUsers = true;
+        const response = await axios.get(API_URL + "/kasutajad");
+        this.adminUsers = response.data || [];
+        this.isFetchingAdminUsers = false;
+        return this.adminUsers;
+      } catch (error) {
+        console.error("Error fetching admin users", error);
+        showErrorToast("Kasutajate laadimine ebaõnnestus");
+        this.isFetchingAdminUsers = false;
+        return [];
+      }
+    },
+
+    async getUser(id: string | number) {
+      try {
+        const response = await axios.get(API_URL + `/kasutajad/${id}`);
+        return response.data as UserRecord;
+      } catch (error) {
+        console.error("Error fetching admin user", error);
+        showErrorToast("Kasutaja laadimine ebaõnnestus");
+        return null;
+      }
+    },
+
+    async createAdminUser(
+      payload: { name: string; email?: string; username?: string },
+      options?: { refresh?: boolean; silent?: boolean }
+    ) {
+      try {
+        await axios.post(API_URL + "/kasutajad", payload, {headers: API_HEADERS});
+        if (!options?.silent) {
+          showSuccessToast("Kasutaja lisatud");
+        }
+        if (options?.refresh !== false) {
+          await this.fetchAdminUsers();
+        }
+        return true;
+      } catch (error) {
+        console.error("Error creating admin user", error);
+        if (!options?.silent) {
+          showErrorToast("Kasutaja lisamine ebaõnnestus");
+        }
+        return false;
+      }
+    },
+
+    async updateAdminUser(id: string | number, payload: { name?: string; email?: string }) {
+      try {
+        await axios.put(API_URL + `/kasutajad/${id}`, payload, {headers: API_HEADERS});
+        showSuccessToast("Kasutaja muudetud");
+        await this.fetchAdminUsers();
+      } catch (error) {
+        console.error("Error updating admin user", error);
+        showErrorToast("Kasutaja muutmine ebaõnnestus");
+      }
+    },
+
+    async deleteAdminUser(id: string | number) {
+      try {
+        await axios.delete(API_URL + `/kasutajad/${id}`, {headers: API_HEADERS});
+        showSuccessToast("Kasutaja kustutatud");
+        await this.fetchAdminUsers();
+      } catch (error) {
+        console.error("Error deleting admin user", error);
+        showErrorToast("Kasutaja kustutamine ebaõnnestus");
       }
     },
 
@@ -314,9 +463,9 @@ export const useMainStore = defineStore('main', {
       console.log("Adding order", newOrder)
 
       const sentOrder: OrderForm = {
-        order_id: newOrder.id,
-        customer_name: newOrder.name,
-        drink_name: newOrder.drink,
+        orderId: newOrder.id,
+        customerName: newOrder.name,
+        drinkName: newOrder.drink,
         quantity: newOrder.amount,
       }
       try {
@@ -349,9 +498,9 @@ export const useMainStore = defineStore('main', {
       }
       for (const order of orders) {
         const newOrder: Order = {
-          id: order.order_id || uuidv4(),
-          drink: order.drink_name,
-          name: order.customer_name,
+          id: order.orderId || uuidv4(),
+          drink: order.drinkName,
+          name: order.customerName,
           amount: order.quantity,
           isSent: true,
         }
@@ -362,9 +511,9 @@ export const useMainStore = defineStore('main', {
     async sendTempOrders(orders: tempOrder[]) {
       if (!orders || orders.length === 0) return;
       const fullOrders: OrderForm[] = orders.map(o => ({
-        order_id: uuidv4(),
-        customer_name: "Sohviku klient",
-        drink_name: o.drink,
+        orderId: uuidv4(),
+        customerName: "Sohviku klient",
+        drinkName: o.drink,
         quantity: o.amount,
       }));
       await this.sendAddOrders(fullOrders);
@@ -378,7 +527,7 @@ export const useMainStore = defineStore('main', {
       }
 
       try {
-        const response = await axios.post(API_URL + "/order/cancel", {order_id: order.id}, {headers: API_HEADERS});
+        const response = await axios.post(API_URL + "/order/cancel", {orderId: order.id}, {headers: API_HEADERS});
         if (response.status === 200 && response.data && response.data.cancelled) {
           this.removeFromOrders(order);
           showSuccessToast("Tellimus tühistatud:\n" + order.name + ": " + order.amount + "x" + order.drink);
@@ -417,10 +566,10 @@ export const useMainStore = defineStore('main', {
       const edited = {...editedOrder};
       console.log("Changing order from", old, "to", edited);
       const payload = {
-        old_order_id: old.id,
+        oldOrderId: old.id,
         order: {
-          customer_name: edited.name,
-          drink_name: edited.drink,
+          customerName: edited.name,
+          drinkName: edited.drink,
           quantity: edited.amount,
         }
       }
@@ -428,7 +577,7 @@ export const useMainStore = defineStore('main', {
       try {
         const response = await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
         if (response.status === 200 && response.data && (response.data.updated || response.data.success)) {
-          const newOrderId = response.data.new_order_id || edited.id;
+          const newOrderId = response.data.newOrderId || edited.id;
           const idx = this.orders.findIndex(o => o.id === old.id);
           const updatedOrder: Order = {
             id: newOrderId,
@@ -474,9 +623,9 @@ export const useMainStore = defineStore('main', {
       }
     },
 
-    async adminCancelLog(order_id: string) {
+    async adminCancelLog(orderId: string) {
       try {
-        await axios.post(API_URL + "/order/cancel", {order_id}, {headers: API_HEADERS});
+        await axios.post(API_URL + "/order/cancel", {orderId}, {headers: API_HEADERS});
         showSuccessToast('Tellimus tühistatud (admin)');
         await this.getLogs();
       } catch (error) {

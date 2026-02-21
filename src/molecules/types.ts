@@ -17,10 +17,22 @@ export type Drink = {
   price: number;
 }
 
+export type DrinkRecord = {
+  id: string | number;
+  name: string;
+  price: number;
+}
+
+export type UserRecord = {
+  id: string | number;
+  name: string;
+  email: string;
+}
+
 export type OrderForm = {
-  order_id: string,
-  customer_name: string,
-  drink_name: string,
+  orderId: string,
+  customerName: string,
+  drinkName: string,
   quantity: number,
 }
 
@@ -32,9 +44,9 @@ export type BarRequest = {
 
 export type LogItem = {
   timestamp: string,
-  order_id: string,
-  customer_name: string,
-  drink_name: string,
+  orderId: string,
+  customerName: string,
+  drinkName: string,
   quantity: number,
-  cancellation_timestamp?: string,
+  cancellationTimestamp?: string,
 }

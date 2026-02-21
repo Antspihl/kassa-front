@@ -8,7 +8,6 @@
         <v-text-field
           v-model="search"
           label="Otsi nime järgi"
-          :clearable="true"
         />
         <v-data-table
           :headers="headers"

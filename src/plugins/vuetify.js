@@ -11,10 +11,13 @@ import 'vuetify/styles'
 // Composables
 import {createVuetify} from 'vuetify'
 
+const savedTheme = localStorage.getItem('theme')
+const defaultTheme = savedTheme === 'light' ? 'light' : 'dark'
+
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
-    defaultTheme: 'dark',
+    defaultTheme,
     themes: {
       dark: {
         colors: {

@@ -51,8 +51,8 @@
     </v-tooltip>
     <v-switch
       class=" pt-5 pl-4"
-      v-model="mainStore.sohvik"
-      @click="toggleSohvik"
+      :model-value="mainStore.sohvik"
+      @update:modelValue="mainStore.setSohvik"
     >
       <template v-slot:prepend>
         <v-icon>mdi-coffee</v-icon>
@@ -60,8 +60,8 @@
     </v-switch>
     <v-switch
       class=" pt-5 pl-4"
-      v-model="isLight"
-      @click="toggleTheme"
+      :model-value="isLight"
+      @update:modelValue="toggleTheme"
     >
       <template v-slot:prepend>
         <v-icon>mdi-theme-light-dark</v-icon>
@@ -80,20 +80,18 @@ import {useMainStore} from "@/api/MainStore";
 
 const mainStore = useMainStore()
 
-const isLight = ref(false);
+const savedTheme = localStorage.getItem("theme");
+const isLight = ref(savedTheme === "light");
 const theme = useTheme()
 
-function toggleTheme() {
-  if (isLight.value) {
-    theme.global.name.value = 'dark'
-    isLight.value = false
-  } else {
-    theme.global.name.value = 'light'
-    isLight.value = true
-  }
+if (savedTheme === "light" || savedTheme === "dark") {
+  theme.global.name.value = savedTheme;
 }
 
-function toggleSohvik() {
-  mainStore.sohvik = !mainStore.sohvik
+function toggleTheme(value) {
+  const nextTheme = value ? "light" : "dark";
+  theme.global.name.value = nextTheme;
+  isLight.value = value;
+  localStorage.setItem("theme", nextTheme);
 }
 </script>
