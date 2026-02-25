@@ -10,6 +10,21 @@
     :items="drinks"
     :items-per-page="10"
   >
+    <template #header.selected>
+      <v-checkbox
+        :model-value="allSelected"
+        :indeterminate="someSelected && !allSelected"
+        hide-details
+        @update:model-value="toggleSelectAll"
+      />
+    </template>
+    <template #item.selected="{ item }">
+      <v-checkbox
+        :model-value="(() => { const id = getItemId(item); return id !== null && selectedItems.has(id); })()"
+        hide-details
+        @update:model-value="() => toggleItem(getItemId(item))"
+      />
+    </template>
     <template #item.actions="{ item }">
       <AdminRowActions
         @edit="openEditDialog(item)"
@@ -51,6 +66,7 @@ const store = useMainStore();
 const toast = useToast();
 
 const headers = [
+  {title: '', key: 'selected', sortable: false, width: '50px'},
   {title: 'ID', key: 'id', width: '120px'},
   {title: 'Joogi nimi', key: 'name'},
   {title: 'Hind', key: 'price', width: '140px'},
@@ -69,9 +85,41 @@ const importRunning = ref(false);
 const importTotal = ref(0);
 const importCurrent = ref(0);
 
+const selectedItems = ref(new Set<string | number>());
+
 const selectedDrink = ref<{ id: string | number | null; name: string; price: number | null }>(
   {id: null, name: '', price: null}
 );
+
+const allSelected = computed(() => {
+  const items = drinks.value;
+  return items.length > 0 && items.every(item => {
+    const id = getItemId(item);
+    return id !== null && selectedItems.value.has(id);
+  });
+});
+
+const someSelected = computed(() => {
+  return selectedItems.value.size > 0;
+});
+
+function toggleSelectAll(value: boolean | null) {
+  if (value) {
+    const ids = drinks.value.map(item => getItemId(item)).filter(id => id !== null) as (string | number)[];
+    selectedItems.value = new Set(ids);
+  } else {
+    selectedItems.value.clear();
+  }
+}
+
+function toggleItem(id: string | number | null) {
+  if (id === null) return;
+  if (selectedItems.value.has(id)) {
+    selectedItems.value.delete(id);
+  } else {
+    selectedItems.value.add(id);
+  }
+}
 
 function openAddDialog() {
   addDialog.value = true;

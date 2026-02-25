@@ -12,6 +12,14 @@
         label="Otsi joogi järgi"
       />
     </v-col>
+    <v-col cols="12" md="4">
+      <v-switch
+        v-model="hideCanceled"
+        label="Peida tühistatud"
+        color="primary"
+        hide-details
+      />
+    </v-col>
   </v-row>
 
   <v-skeleton-loader v-if="isFetchingLogs" type="table"/>
@@ -22,6 +30,21 @@
     :items-per-page="10"
     :sort-desc="[true]"
   >
+    <template #header.selected>
+      <v-checkbox
+        :model-value="allSelected"
+        :indeterminate="someSelected && !allSelected"
+        hide-details
+        @update:model-value="toggleSelectAll"
+      />
+    </template>
+    <template #item.selected="{ item }">
+      <v-checkbox
+        :model-value="selectedItems.has(item.orderId)"
+        hide-details
+        @update:model-value="toggleItem(item.orderId)"
+      />
+    </template>
     <template #item.actions="{ item }">
       <v-row v-if="!item.cancellationTimestamp">
         <div class="ml-2">
@@ -53,6 +76,7 @@ import ConfirmActionButton from "@/molecules/ConfirmActionButton.vue";
 const store = useMainStore();
 
 const headers = [
+  {title: '', key: 'selected', sortable: false, width: '50px'},
   {title: 'Aeg', key: 'timestamp', width: '150px'},
   {title: 'Klient', key: 'customerName', width: '200px'},
   {title: 'Jook', key: 'drinkName', width: '200px'},
@@ -65,13 +89,24 @@ const isFetchingLogs = computed(() => store.isFetchingLogs);
 const visibleLogs = computed(() => store.logs || []);
 const customerFilter = ref('');
 const drinkFilter = ref('');
+const hideCanceled = ref(false);
+const selectedItems = ref(new Set<string>());
 
 const filteredLogs = computed(() => {
   const customer = customerFilter.value.trim().toLowerCase();
   const drink = drinkFilter.value.trim().toLowerCase();
-  if (!customer && !drink) return visibleLogs.value;
 
-  return visibleLogs.value.filter((item) => {
+  let logs = visibleLogs.value;
+
+  // Filter out canceled items if switch is on
+  if (hideCanceled.value) {
+    logs = logs.filter(item => !item.cancellationTimestamp);
+  }
+
+  // Apply text filters
+  if (!customer && !drink) return logs;
+
+  return logs.filter((item) => {
     const customerName = (item.customerName || '').toLowerCase();
     const drinkName = (item.drinkName || '').toLowerCase();
     const customerMatch = !customer || customerName.includes(customer);
@@ -79,6 +114,31 @@ const filteredLogs = computed(() => {
     return customerMatch && drinkMatch;
   });
 });
+
+const allSelected = computed(() => {
+  const logs = filteredLogs.value;
+  return logs.length > 0 && logs.every(item => selectedItems.value.has(item.orderId));
+});
+
+const someSelected = computed(() => {
+  return selectedItems.value.size > 0;
+});
+
+function toggleSelectAll(value: boolean | null) {
+  if (value) {
+    selectedItems.value = new Set(filteredLogs.value.map(item => item.orderId));
+  } else {
+    selectedItems.value.clear();
+  }
+}
+
+function toggleItem(orderId: string) {
+  if (selectedItems.value.has(orderId)) {
+    selectedItems.value.delete(orderId);
+  } else {
+    selectedItems.value.add(orderId);
+  }
+}
 
 function mapLogToOrder(item: LogItem): Order {
   return {
