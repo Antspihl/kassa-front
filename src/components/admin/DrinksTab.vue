@@ -1,7 +1,17 @@
 <template>
-  <AdminAddButton @click="openAddDialog">
-    Lisa jook
-  </AdminAddButton>
+  <div class="d-flex justify-space-between align-center mb-4">
+    <AdminAddButton @click="openAddDialog">
+      Lisa jook
+    </AdminAddButton>
+    <v-btn
+      v-if="selectedItems.size > 0"
+      :disabled="!canBatchDelete"
+      color="accent"
+      @click="confirmBatchDelete"
+    >
+      Kustuta valitud ({{ selectedItems.size }})
+    </v-btn>
+  </div>
 
   <v-skeleton-loader v-if="isFetching" type="table"/>
   <v-data-table
@@ -103,22 +113,47 @@ const someSelected = computed(() => {
   return selectedItems.value.size > 0;
 });
 
+const canBatchDelete = computed(() => {
+  return selectedItems.value.size > 0 && selectedItems.value.size <= 10;
+});
+
 function toggleSelectAll(value: boolean | null) {
   if (value) {
     const ids = drinks.value.map(item => getItemId(item)).filter(id => id !== null) as (string | number)[];
     selectedItems.value = new Set(ids);
   } else {
-    selectedItems.value.clear();
+    selectedItems.value = new Set();
   }
 }
 
 function toggleItem(id: string | number | null) {
   if (id === null) return;
-  if (selectedItems.value.has(id)) {
-    selectedItems.value.delete(id);
+  const newSet = new Set(selectedItems.value);
+  if (newSet.has(id)) {
+    newSet.delete(id);
   } else {
-    selectedItems.value.add(id);
+    newSet.add(id);
   }
+  selectedItems.value = newSet;
+}
+
+async function confirmBatchDelete() {
+  const count = selectedItems.value.size;
+  if (count === 0) return;
+
+  const confirmed = confirm(`Kas oled kindel, et soovid kustutada ${count} jooki?`);
+  if (!confirmed) return;
+
+  const ids = Array.from(selectedItems.value);
+  const result = await store.batchDeleteDrinks(ids);
+
+  if (result && result.failed > 0) {
+    const failedItems = result.results.filter((r: any) => !r.success);
+    const reasons = failedItems.map((r: any) => `ID ${r.id}: ${r.reason}`).join('\n');
+    alert(`Mõned joogid ei saanud kustutada:\n${reasons}`);
+  }
+
+  selectedItems.value = new Set();
 }
 
 function openAddDialog() {

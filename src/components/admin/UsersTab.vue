@@ -1,7 +1,28 @@
 <template>
-  <AdminAddButton @click="openAddDialog">
-    Lisa kasutaja
-  </AdminAddButton>
+  <v-row class="mb-2">
+    <v-col cols="12" md="3">
+      <v-text-field
+        v-model="nameFilter"
+        label="Otsi nime järgi"
+      />
+    </v-col>
+    <v-col>
+      <v-row class="mt-2">
+      <AdminAddButton @click="openAddDialog">
+        Lisa kasutaja
+      </AdminAddButton>
+      <v-btn
+        v-if="selectedItems.size > 0"
+        :disabled="!canBatchDelete"
+        color="accent"
+        @click="confirmBatchDelete"
+        class="ml-2"
+      >
+        Kustuta valitud ({{ selectedItems.size }})
+      </v-btn>
+      </v-row>
+    </v-col>
+  </v-row>
 
   <v-skeleton-loader v-if="isFetching" type="table"/>
   <v-data-table
@@ -73,8 +94,19 @@ const headers = [
   {title: 'Tegevused', key: 'actions', sortable: false},
 ];
 
-const users = computed(() => store.adminUsers || []);
+const allUsers = computed(() => store.adminUsers || []);
 const isFetching = computed(() => store.isFetchingAdminUsers);
+const nameFilter = ref('');
+
+const users = computed(() => {
+  const filter = nameFilter.value.trim().toLowerCase();
+  if (!filter) return allUsers.value;
+
+  return allUsers.value.filter(user => {
+    const name = (user.name || '').toLowerCase();
+    return name.includes(filter);
+  });
+});
 
 const addDialog = ref(false);
 const editDialog = ref(false);
@@ -103,22 +135,47 @@ const someSelected = computed(() => {
   return selectedItems.value.size > 0;
 });
 
+const canBatchDelete = computed(() => {
+  return selectedItems.value.size > 0 && selectedItems.value.size <= 10;
+});
+
 function toggleSelectAll(value: boolean | null) {
   if (value) {
     const ids = users.value.map(item => getItemId(item)).filter(id => id !== null) as (string | number)[];
     selectedItems.value = new Set(ids);
   } else {
-    selectedItems.value.clear();
+    selectedItems.value = new Set();
   }
 }
 
 function toggleItem(id: string | number | null) {
   if (id === null) return;
-  if (selectedItems.value.has(id)) {
-    selectedItems.value.delete(id);
+  const newSet = new Set(selectedItems.value);
+  if (newSet.has(id)) {
+    newSet.delete(id);
   } else {
-    selectedItems.value.add(id);
+    newSet.add(id);
   }
+  selectedItems.value = newSet;
+}
+
+async function confirmBatchDelete() {
+  const count = selectedItems.value.size;
+  if (count === 0) return;
+
+  const confirmed = confirm(`Kas oled kindel, et soovid kustutada ${count} kasutajat?`);
+  if (!confirmed) return;
+
+  const ids = Array.from(selectedItems.value);
+  const result = await store.batchDeleteUsers(ids);
+
+  if (result && result.failed > 0) {
+    const failedItems = result.results.filter((r: any) => !r.success);
+    const reasons = failedItems.map((r: any) => `ID ${r.id}: ${r.reason}`).join('\n');
+    alert(`Mõned kasutajad ei saanud kustutada:\n${reasons}`);
+  }
+
+  selectedItems.value = new Set();
 }
 
 function openAddDialog() {

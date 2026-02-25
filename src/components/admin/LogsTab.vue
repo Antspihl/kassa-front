@@ -1,24 +1,34 @@
 <template>
   <v-row class="mb-2">
-    <v-col cols="12" md="4">
+    <v-col cols="12" md="3">
       <v-text-field
         v-model="customerFilter"
         label="Otsi nime järgi"
       />
     </v-col>
-    <v-col cols="12" md="4">
+    <v-col cols="12" md="3">
       <v-text-field
         v-model="drinkFilter"
         label="Otsi joogi järgi"
       />
     </v-col>
-    <v-col cols="12" md="4">
+    <v-col cols="12" md="3">
       <v-switch
         v-model="hideCanceled"
         label="Peida tühistatud"
         color="primary"
         hide-details
       />
+    </v-col>
+    <v-col cols="12" md="3" class="d-flex align-center justify-end">
+      <v-btn
+        v-if="selectedNonCancelled.length > 0"
+        :disabled="!canBatchCancel"
+        color="accent"
+        @click="confirmBatchCancel"
+      >
+        Tühista valitud ({{ selectedNonCancelled.length }})
+      </v-btn>
     </v-col>
   </v-row>
 
@@ -40,9 +50,9 @@
     </template>
     <template #item.selected="{ item }">
       <v-checkbox
-        :model-value="selectedItems.has(item.orderId)"
+        :model-value="isItemSelected(item.orderId)"
         hide-details
-        @update:model-value="toggleItem(item.orderId)"
+        @update:model-value="() => toggleItem(item.orderId)"
       />
     </template>
     <template #item.actions="{ item }">
@@ -124,20 +134,48 @@ const someSelected = computed(() => {
   return selectedItems.value.size > 0;
 });
 
+const selectedNonCancelled = computed(() => {
+  return filteredLogs.value.filter(item =>
+    selectedItems.value.has(item.orderId) && !item.cancellationTimestamp
+  );
+});
+
+const canBatchCancel = computed(() => {
+  return selectedNonCancelled.value.length > 0 && selectedNonCancelled.value.length <= 10;
+});
+
+function isItemSelected(orderId: string): boolean {
+  return selectedItems.value.has(orderId);
+}
+
 function toggleSelectAll(value: boolean | null) {
   if (value) {
     selectedItems.value = new Set(filteredLogs.value.map(item => item.orderId));
   } else {
-    selectedItems.value.clear();
+    selectedItems.value = new Set();
   }
 }
 
 function toggleItem(orderId: string) {
-  if (selectedItems.value.has(orderId)) {
-    selectedItems.value.delete(orderId);
+  const newSet = new Set(selectedItems.value);
+  if (newSet.has(orderId)) {
+    newSet.delete(orderId);
   } else {
-    selectedItems.value.add(orderId);
+    newSet.add(orderId);
   }
+  selectedItems.value = newSet;
+}
+
+async function confirmBatchCancel() {
+  const count = selectedNonCancelled.value.length;
+  if (count === 0) return;
+
+  const confirmed = confirm(`Kas oled kindel, et soovid tühistada ${count} tellimust?`);
+  if (!confirmed) return;
+
+  const orderIds = selectedNonCancelled.value.map(item => item.orderId);
+  await store.batchCancelLogs(orderIds);
+  selectedItems.value = new Set();
 }
 
 function mapLogToOrder(item: LogItem): Order {

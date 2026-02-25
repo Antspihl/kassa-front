@@ -633,5 +633,69 @@ export const useMainStore = defineStore('main', {
         showErrorToast('Tellimuse tühistamine ebaõnnestus (admin)');
       }
     },
+
+    async batchCancelLogs(orderIds: string[]) {
+      try {
+        const response = await axios.post(
+          API_URL + "/admin/logs/batch-cancel",
+          {orderIds},
+          {headers: API_HEADERS}
+        );
+        const data = response.data;
+        if (data.success) {
+          showSuccessToast(`${data.cancelled} tellimust tühistatud`);
+        } else {
+          showErrorToast(`${data.cancelled} tühistatud, ${data.failed} ebaõnnestus`);
+        }
+        await this.getLogs();
+        return data;
+      } catch (error) {
+        console.error('Batch cancel error', error);
+        showErrorToast('Pakktühistamine ebaõnnestus');
+        return null;
+      }
+    },
+
+    async batchDeleteDrinks(ids: (string | number)[]) {
+      try {
+        const response = await axios.delete(
+          API_URL + "/joogid/batch",
+          {headers: API_HEADERS, data: {ids}}
+        );
+        const data = response.data;
+        if (data.success) {
+          showSuccessToast(`${data.deleted} jooki kustutatud`);
+        } else {
+          showErrorToast(`${data.deleted} kustutatud, ${data.failed} ebaõnnestus`);
+        }
+        await this.fetchAdminDrinks();
+        return data;
+      } catch (error) {
+        console.error('Batch delete drinks error', error);
+        showErrorToast('Pakkude kustutamine ebaõnnestus');
+        return null;
+      }
+    },
+
+    async batchDeleteUsers(ids: (string | number)[]) {
+      try {
+        const response = await axios.delete(
+          API_URL + "/kasutajad/batch",
+          {headers: API_HEADERS, data: {ids}}
+        );
+        const data = response.data;
+        if (data.success) {
+          showSuccessToast(`${data.deleted} kasutajat kustutatud`);
+        } else {
+          showErrorToast(`${data.deleted} kustutatud, ${data.failed} ebaõnnestus`);
+        }
+        await this.fetchAdminUsers();
+        return data;
+      } catch (error) {
+        console.error('Batch delete users error', error);
+        showErrorToast('Kasutajate pakkude kustutamine ebaõnnestus');
+        return null;
+      }
+    },
   }
 })
