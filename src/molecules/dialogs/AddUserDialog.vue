@@ -1,18 +1,17 @@
 <template>
   <AdminDialog
     v-model="model"
-    title="Lisa jook"
+    title="Lisa kasutaja"
     submit-text="Lisa"
     :loading="loading"
     @submit="submit"
   >
-    <v-text-field ref="nameRef" v-model="name" label="Joogi nimi" />
-    <v-text-field v-model="price" label="Hind" type="number" />
+    <v-text-field ref="nameRef" v-model="name" label="Nimi" />
+    <v-text-field v-model="email" label="E-post" />
     <v-file-input
       class="mt-2"
-      label="Impordi CSV (name, price)"
+      label="Impordi CSV (name, username)"
       accept=".csv,text/csv"
-      prepend-icon="mdi-file-upload"
       @update:modelValue="onFileChange"
     />
     <v-progress-linear
@@ -30,7 +29,7 @@
 
 <script setup lang="ts">
 import {computed, nextTick, ref, watch} from 'vue';
-import AdminDialog from '@/molecules/admin/dialogs/AdminDialog.vue';
+import AdminDialog from '@/molecules/dialogs/AdminDialog.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -41,12 +40,12 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'submit', payload: { name: string; price: number }): void;
+  (e: 'submit', payload: { name: string; email: string }): void;
   (e: 'file-selected', file: File | File[] | null): void;
 }>();
 
 const name = ref('');
-const price = ref('');
+const email = ref('');
 const nameRef = ref<any>(null);
 
 const model = computed({
@@ -70,7 +69,7 @@ watch(
   (open) => {
     if (!open) return;
     name.value = '';
-    price.value = '';
+    email.value = '';
     nextTick(() => {
       const input = nameRef.value?.$el?.querySelector('input');
       input?.focus?.();
@@ -84,8 +83,8 @@ function onFileChange(file: File | File[] | null) {
 
 function submit() {
   const trimmedName = name.value.trim();
-  const parsedPrice = Number(price.value);
-  if (!trimmedName || Number.isNaN(parsedPrice)) return;
-  emit('submit', {name: trimmedName, price: parsedPrice});
+  const trimmedEmail = email.value.trim();
+  if (!trimmedName || !trimmedEmail) return;
+  emit('submit', {name: trimmedName, email: trimmedEmail});
 }
 </script>

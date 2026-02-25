@@ -1,22 +1,19 @@
 <template>
-  <v-dialog v-model="model" max-width="520">
-    <v-card>
-      <v-card-title>Muuda kasutajat</v-card-title>
-      <v-card-text>
-        <v-text-field ref="nameRef" v-model="name" label="Nimi" />
-        <v-text-field v-model="email" label="E-post" />
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer/>
-        <v-btn text="Tühista" @click="close"/>
-        <v-btn color="primary" text="Salvesta" :loading="loading" @click="submit"/>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <AdminDialog
+    v-model="model"
+    title="Muuda kasutajat"
+    submit-text="Salvesta"
+    :loading="loading"
+    @submit="submit"
+  >
+    <v-text-field ref="nameRef" v-model="name" label="Nimi" />
+    <v-text-field v-model="email" label="E-post" />
+  </AdminDialog>
 </template>
 
 <script setup lang="ts">
 import {computed, nextTick, ref, watch} from 'vue';
+import AdminDialog from '@/molecules/dialogs/AdminDialog.vue';
 
 type UserPayload = {
   id: string | number | null;
@@ -52,10 +49,6 @@ watch(
   },
   {deep: true}
 );
-
-function close() {
-  emit('update:modelValue', false);
-}
 
 function submit() {
   if (props.user?.id === null || props.user?.id === undefined) return;

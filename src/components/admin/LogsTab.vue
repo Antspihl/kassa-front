@@ -27,18 +27,13 @@
         <div class="ml-2">
           <EditDialog :order="mapLogToOrder(item)"/>
         </div>
-        <v-tooltip v-model="confirmState[item.orderId || '']" location="top">
-          <template #activator="{ props }">
-            <v-btn
-              v-bind="props"
-              icon="mdi-close"
-              color="accent"
-              size="small"
-              @click="onCancel(item)"
-            />
-          </template>
-          Kindel?
-        </v-tooltip>
+        <confirm-action-button
+          class="ml-2"
+          icon="mdi-close"
+          color="accent"
+          size="small"
+          @confirm="onCancel(item)"
+        />
       </v-row>
     </template>
     <template #item.cancellationTimestamp="{ item }">
@@ -51,8 +46,9 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue';
 import {useMainStore} from '@/api/MainStore';
-import EditDialog from '@/molecules/EditDialog.vue';
+import EditDialog from '@/molecules/dialogs/EditDialog.vue';
 import {LogItem, Order} from '@/molecules/types';
+import ConfirmActionButton from "@/molecules/ConfirmActionButton.vue";
 
 const store = useMainStore();
 
@@ -69,8 +65,6 @@ const isFetchingLogs = computed(() => store.isFetchingLogs);
 const visibleLogs = computed(() => store.logs || []);
 const customerFilter = ref('');
 const drinkFilter = ref('');
-const confirmState = ref<Record<string, boolean>>({});
-const confirmTimeouts = new Map<string, number>();
 
 const filteredLogs = computed(() => {
   const customer = customerFilter.value.trim().toLowerCase();
@@ -98,32 +92,6 @@ function mapLogToOrder(item: LogItem): Order {
 
 async function onCancel(item: LogItem) {
   if (!item || !item.orderId) return;
-  const id = item.orderId;
-  const isArmed = confirmState.value[id];
-  if (!isArmed) {
-    confirmState.value = {...confirmState.value, [id]: true};
-    const existing = confirmTimeouts.get(id);
-    if (existing) {
-      clearTimeout(existing);
-    }
-    const timeout = window.setTimeout(() => {
-      const next = {...confirmState.value};
-      delete next[id];
-      confirmState.value = next;
-      confirmTimeouts.delete(id);
-    }, 2000);
-    confirmTimeouts.set(id, timeout);
-    return;
-  }
-
-  const existing = confirmTimeouts.get(id);
-  if (existing) {
-    clearTimeout(existing);
-    confirmTimeouts.delete(id);
-  }
-  const next = {...confirmState.value};
-  delete next[id];
-  confirmState.value = next;
   await store.adminCancelLog(item.orderId);
 }
 </script>

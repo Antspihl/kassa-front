@@ -22,13 +22,13 @@
           rounded="shaped"
         >
           <v-list-item-action>
-            <v-btn
-              color="accent"
+            <confirm-action-button
               class="mr-2"
-              @click="cancelOrder(order)"
-              :loading="canceling"
               icon="mdi-close"
+              color="accent"
               size="small"
+              :loading="canceling"
+              @confirm="cancelOrder(order)"
             />
             <EditDialog
               :order="order"
@@ -45,9 +45,10 @@
 
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
-import EditDialog from "@/molecules/EditDialog.vue";
+import EditDialog from "@/molecules/dialogs/EditDialog.vue";
 import {Order} from "@/molecules/types";
 import {onMounted, ref} from "vue";
+import ConfirmActionButton from "@/molecules/ConfirmActionButton.vue";
 
 const mainStore = useMainStore();
 const loading = ref(false)
