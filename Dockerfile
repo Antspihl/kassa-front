@@ -1,25 +1,11 @@
-FROM node:22.20.0-alpine
-LABEL authors="Antspihl"
-
-# install http-server for serving static content
-RUN npm install -g http-server
-
-# make the 'app' folder the current working directory
+FROM node:22-alpine AS build
 WORKDIR /app
-
-# copy package files
-COPY package.json package-lock.json ./
-
-# install project dependencies using npm
+COPY package*.json ./
 RUN npm ci
-
-# copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
-
-# build the frontend
 RUN npm run build
 
-ENV PORT=3000
-EXPOSE 3000
-
-CMD [ "http-server", "dist" ]
+FROM nginx:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80

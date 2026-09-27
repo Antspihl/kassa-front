@@ -51,15 +51,6 @@
     </v-tooltip>
     <v-switch
       class=" pt-5 pl-4"
-      v-model="mainStore.sohvik"
-      @click="toggleSohvik"
-    >
-      <template v-slot:prepend>
-        <v-icon>mdi-coffee</v-icon>
-      </template>
-    </v-switch>
-    <v-switch
-      class=" pt-5 pl-4"
       v-model="isLight"
       @click="toggleTheme"
     >
@@ -93,7 +84,4 @@ function toggleTheme() {
   }
 }
 
-function toggleSohvik() {
-  mainStore.sohvik = !mainStore.sohvik
-}
 </script>

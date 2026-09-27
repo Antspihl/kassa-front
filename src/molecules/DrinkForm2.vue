@@ -1,7 +1,8 @@
 <template>
   <v-container>
     <h4>Vali kook ja kogus</h4>
-    <v-form class="mt-2">
+    <v-alert v-if="paidPending" type="warning">Makstud tellimus ootab serveri kinnitust. Ostukorv jääb alles.</v-alert>
+    <v-form class="mt-2" :disabled="paidPending">
       <v-chip-group
         v-if="mainStore.drinks2.length > 0"
         v-model="mainStore.currentOrder.drink"
@@ -131,7 +132,7 @@
 
 <script setup lang="ts">
 import {useMainStore} from "@/api/MainStore";
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import {tempOrder} from "@/molecules/types";
 
 const mainStore = useMainStore();
@@ -139,7 +140,11 @@ const mainStore = useMainStore();
 const showDialog = ref(false)
 const sending = ref(false)
 
-const orders = ref<tempOrder[]>([]);
+const orders = computed({
+  get: () => mainStore.paidCart,
+  set: (value: tempOrder[]) => { mainStore.paidCart = value; localStorage.setItem('paidCart', JSON.stringify(value)); }
+});
+const paidPending = computed(() => mainStore.requestList.some(r => r.type === 3) || mainStore.currentRequest?.type === 3);
 
 function changeAmount(amount: number) {
   if (mainStore.currentOrder.amount === 1 && amount === 5) {
@@ -161,6 +166,7 @@ async function addOrder() {
     price: drinkObj?.price ?? 0
   }
   orders.value.push(order);
+  localStorage.setItem('paidCart', JSON.stringify(orders.value));
   mainStore.currentOrder.amount = 1;
 }
 
@@ -168,6 +174,7 @@ function removeOrder(order: tempOrder) {
   const index = orders.value.indexOf(order);
   if (index > -1) {
     orders.value.splice(index, 1);
+    localStorage.setItem('paidCart', JSON.stringify(orders.value));
   }
 }
 
@@ -175,9 +182,8 @@ async function sendOrder(orders1: tempOrder[]) {
   if (orders1.length == 0) return;
   sending.value = true;
   try {
-    await mainStore.sendTempOrders(orders1);
-    orders.value = [];
-    showDialog.value = false;
+    const sent = await mainStore.sendTempOrders(orders1);
+    if (sent) showDialog.value = false;
   } finally {
     sending.value = false;
   }

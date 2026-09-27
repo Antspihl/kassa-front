@@ -1,5 +1,7 @@
 <template>
-  <v-row class="pt-4">
+  <v-alert v-if="mainStore.billingLocked" type="info">Tellimused on pärast arvete saatmise alustamist suletud.</v-alert>
+  <v-alert v-else-if="!mainStore.mode" type="warning">Vali õhtu tüüp seadete menüüst enne tellimuste lisamist.</v-alert>
+  <v-row v-else class="pt-4">
     <v-col cols="6">
       <DrinkForm v-if="!mainStore.sohvik"/>
       <DrinkForm2 v-else/>
@@ -25,7 +27,7 @@ const mainStore = useMainStore();
 
 
 onMounted(async () => {
-  const items = ["orders", "names", "drinks", "drinks2", "requestList"];
+  const items = ["orders", "names", "drinks", "drinks2"];
   for (const item of items) {
     const itemString = localStorage.getItem(item);
     if (itemString) {

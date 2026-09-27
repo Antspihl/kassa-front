@@ -25,9 +25,10 @@ export type OrderForm = {
 }
 
 export type BarRequest = {
-  type: number; // 0 - add, 1 - change, 2 - cancel
+  type: number; // 0 - add, 1 - change, 2 - cancel, 3 - paid batch
   order: Order;
   oldOrder: Order;
+  batch?: OrderForm[];
 }
 
 export type LogItem = {

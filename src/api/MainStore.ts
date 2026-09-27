@@ -12,15 +12,60 @@ interface BillDetail {
   drinks: { [key: string]: number };
 }
 
-// Get API_URL from localStorage or use default
-const DEFAULT_API_URL = "http://localhost:5000";
-export let API_URL: string = localStorage.getItem("API_URL") || DEFAULT_API_URL;
+export const DEFAULT_API_URL = `${window.location.origin}/api`;
+export function normalizeApiUrl(input: string): string {
+  const value = input.trim();
+  if (!value || value === '/api') return DEFAULT_API_URL;
+
+  const hasProtocol = /^https?:\/\//i.test(value);
+  const isRelative = value.startsWith('/');
+  let url: URL;
+  try {
+    url = new URL(isRelative ? value : hasProtocol ? value : `${window.location.protocol}//${value}`, window.location.origin);
+  } catch {
+    throw new Error('Vigane API URL');
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new Error('Vigane API URL');
+  }
+  if (!hasProtocol && !isRelative && !url.port) url.port = window.location.port;
+  if (url.pathname === '/') url.pathname = '/api';
+  return url.toString().replace(/\/$/, '');
+}
+
+function isLegacyApiUrl(url: string): boolean {
+  if (url === '/api') return true;
+  try {
+    const parsed = new URL(url);
+    if (['localhost', '127.0.0.1'].includes(parsed.hostname) && parsed.origin !== window.location.origin && /^\/api\/?$/.test(parsed.pathname)) return true;
+    return parsed.port === '5000' && (parsed.hostname === 'localhost' || parsed.hostname === window.location.hostname);
+  } catch {
+    return false;
+  }
+}
+function loadApiUrl(): string {
+  const saved = localStorage.getItem('API_URL');
+  if (!saved) return DEFAULT_API_URL;
+  try {
+    const normalized = isLegacyApiUrl(saved) ? DEFAULT_API_URL : normalizeApiUrl(saved);
+    if (normalized === DEFAULT_API_URL) localStorage.removeItem('API_URL');
+    else if (normalized !== saved) localStorage.setItem('API_URL', normalized);
+    return normalized;
+  } catch {
+    localStorage.removeItem('API_URL');
+    return DEFAULT_API_URL;
+  }
+}
+export let API_URL: string = loadApiUrl();
+axios.defaults.withCredentials = true;
 
 export const API_HEADERS: {} = {'content-type': 'application/json'};
 
-export function setApiUrl(url: string) {
-  API_URL = url;
-  localStorage.setItem("API_URL", url);
+export function setApiUrl(url: string): string {
+  API_URL = normalizeApiUrl(url);
+  if (API_URL === DEFAULT_API_URL) localStorage.removeItem('API_URL');
+  else localStorage.setItem('API_URL', API_URL);
+  return API_URL;
 }
 
 function showSuccessToast(text: string) {
@@ -29,6 +74,13 @@ function showSuccessToast(text: string) {
 
 function showErrorToast(text: string) {
   toast.error(text);
+}
+
+function loadQueue(): BarRequest[] {
+  const queued = JSON.parse(localStorage.getItem('requestList') || '[]') as BarRequest[];
+  const inflight = localStorage.getItem('inflightRequest');
+  if (inflight) queued.unshift(JSON.parse(inflight) as BarRequest);
+  return queued;
 }
 
 export const useMainStore = defineStore('main', {
@@ -48,9 +100,15 @@ export const useMainStore = defineStore('main', {
     } as Order,
     orders: [] as Order[],
     currentRequest: {} as BarRequest,
-    requestList: JSON.parse(localStorage.getItem("requestList") || "[]") as BarRequest[],
+    requestList: loadQueue(),
     sendingRequests: false,
     sohvik: true,
+    mode: null as 'paid' | 'unpaid' | null,
+    modeLoaded: false,
+    modeLocked: false,
+    billingLocked: false,
+    isOrganizer: false,
+    paidCart: JSON.parse(localStorage.getItem('paidCart') || '[]') as tempOrder[],
     isConnected: true,
     connectionCheckInterval: null as number | null,
 
@@ -60,9 +118,52 @@ export const useMainStore = defineStore('main', {
     isFetchingLogs: false,
   }),
   actions: {
+    async loadMode() {
+      const response = await axios.get(API_URL + '/mode');
+      this.mode = response.data.mode;
+      this.modeLocked = response.data.locked;
+      this.billingLocked = response.data.billingLocked;
+      this.sohvik = this.mode === 'paid';
+      this.modeLoaded = true;
+    },
+    async setMode(mode: 'paid' | 'unpaid') {
+      await axios.put(API_URL + '/admin/mode', {mode});
+      await this.loadMode();
+    },
+    async checkOrganizer() {
+      if (sessionStorage.getItem('organizerLoggedIn') !== '1') {
+        this.isOrganizer = false;
+        return;
+      }
+      try { await axios.get(API_URL + '/admin/session'); this.isOrganizer = true; }
+      catch {
+        sessionStorage.removeItem('organizerLoggedIn');
+        this.isOrganizer = false;
+      }
+    },
+    async organizerLogin(password: string) {
+      await axios.post(API_URL + '/admin/login', {password});
+      sessionStorage.setItem('organizerLoggedIn', '1');
+      this.isOrganizer = true;
+    },
+    async organizerLogout() {
+      await axios.post(API_URL + '/admin/logout');
+      sessionStorage.removeItem('organizerLoggedIn');
+      this.isOrganizer = false;
+    },
+    async importDrinks() {
+      await axios.post(API_URL + '/admin/import/drinks');
+      await this.fetchDrinks();
+      await this.fetchDrinks2();
+    },
+    async importNames() {
+      await axios.post(API_URL + '/admin/import/names');
+      await this.fetchNames();
+    },
     async checkConnection() {
       try {
         await axios.get(API_URL, {timeout: 5000});
+        await this.loadMode();
         if (!this.isConnected) {
           this.isConnected = true;
           showSuccessToast("Ühendus taastatud");
@@ -151,16 +252,13 @@ export const useMainStore = defineStore('main', {
       console.log("Fetching orders")
       try {
         const response = await axios.get(API_URL + "/orders");
-        for (const item of response.data) {
-          const newOrder: Order = {
+        this.orders = response.data.map((item: any): Order => ({
             id: item.order_id || item.id,
             drink: item.drink_name || item.drink,
             name: item.customer_name || item.customer,
             amount: item.quantity,
             isSent: true,
-          };
-          this.addToOrders(newOrder);
-        }
+          })).reverse();
         localStorage.setItem("orders", JSON.stringify(this.orders));
         showSuccessToast("Tellimused laetud")
       } catch (error) {
@@ -215,7 +313,6 @@ export const useMainStore = defineStore('main', {
     },
 
     refreshOrders() {
-      this.clearOrders();
       this.fetchOrders();
     },
 
@@ -261,6 +358,8 @@ export const useMainStore = defineStore('main', {
         return;
       }
       this.requestList.push({type: 1, order: editedOrder, oldOrder: oldOrder} as BarRequest);
+      editedOrder.id = uuidv4();
+      localStorage.setItem('requestList', JSON.stringify(this.requestList));
       this.startSendingRequests();
     },
 
@@ -274,6 +373,7 @@ export const useMainStore = defineStore('main', {
       console.log("Adding remove order request", order)
       this.orders = this.orders.filter((o: Order) => o.id !== order.id);
       this.requestList.push({type: 2, order: order, oldOrder: order} as BarRequest);
+      localStorage.setItem('requestList', JSON.stringify(this.requestList));
       this.startSendingRequests();
     },
 
@@ -296,6 +396,7 @@ export const useMainStore = defineStore('main', {
 
         // @ts-ignore
         this.currentRequest = this.requestList.shift();
+        localStorage.setItem('inflightRequest', JSON.stringify(this.currentRequest));
         localStorage.setItem("requestList", JSON.stringify(this.requestList));
         if (!this.currentRequest) continue;
         if (this.currentRequest.type === 0) {
@@ -304,7 +405,10 @@ export const useMainStore = defineStore('main', {
           await this.sendChangeOrder(this.currentRequest.oldOrder, this.currentRequest.order);
         } else if (this.currentRequest.type === 2) {
           await this.sendCancelOrder(this.currentRequest.order);
+        } else if (this.currentRequest.type === 3) {
+          await this.sendPaidBatch((this.currentRequest as any).batch);
         }
+        localStorage.removeItem('inflightRequest');
       }
       this.currentRequest = {} as BarRequest;
       this.sendingRequests = false;
@@ -346,6 +450,7 @@ export const useMainStore = defineStore('main', {
       } catch (error) {
         console.error("Error adding orders", error);
         showErrorToast("Tellimuste esitamine ebaõnnestus");
+        throw error;
       }
       for (const order of orders) {
         const newOrder: Order = {
@@ -361,13 +466,28 @@ export const useMainStore = defineStore('main', {
 
     async sendTempOrders(orders: tempOrder[]) {
       if (!orders || orders.length === 0) return;
+      if (this.requestList.some(r => r.type === 3) || this.currentRequest?.type === 3) return false;
       const fullOrders: OrderForm[] = orders.map(o => ({
         order_id: uuidv4(),
         customer_name: "Sohviku klient",
         drink_name: o.drink,
         quantity: o.amount,
       }));
-      await this.sendAddOrders(fullOrders);
+      this.requestList.push({type: 3, batch: fullOrders, order: {} as Order, oldOrder: {} as Order} as BarRequest);
+      localStorage.setItem('requestList', JSON.stringify(this.requestList));
+      await this.startSendingRequests();
+      return this.paidCart.length === 0;
+    },
+    async sendPaidBatch(orders: OrderForm[]) {
+      try {
+        await this.sendAddOrders(orders);
+        this.paidCart = [];
+        localStorage.setItem('paidCart', '[]');
+      } catch {
+        this.requestList.unshift({type: 3, batch: orders, order: {} as Order, oldOrder: {} as Order} as BarRequest);
+        localStorage.setItem('requestList', JSON.stringify(this.requestList));
+        this.isConnected = false;
+      }
     },
 
     async sendCancelOrder(order: Order) {
@@ -418,6 +538,7 @@ export const useMainStore = defineStore('main', {
       console.log("Changing order from", old, "to", edited);
       const payload = {
         old_order_id: old.id,
+        new_order_id: edited.id,
         order: {
           customer_name: edited.name,
           drink_name: edited.drink,

@@ -1,34 +1,7 @@
-## Project setup
+# Kassa frontend
 
-```
-npm install
-```
+Vue cashier and bill review UI for `../kassa-back-lightweight`.
 
-### Compiles and hot-reloads for development
+For local development, run `npm ci` and `npm run dev`. Vite serves port 3000 and proxies `/api` to the backend on port 5000. Run `npm run build` to check the production bundle.
 
-```
-npm run dev
-```
-
-### Docker Image Update. Replace [latest] with the version number.
-```bash
-docker build -t antspihl/kassa-front:[latest] .
-```
-```bash
-docker login
-```
-```bash
-docker push antspihl/kassa-front:[latest]
-```
-
-### Pull and run the image
-
-```bash
-docker login
-```
-```bash
-docker pull antspihl/kassa-front:latest
-```
-```bash
-docker run -d -p 3000:3000 --name kassa-front antspihl/kassa-front:latest
-```
+For the laptop and ZeroTier iPad deployment, follow the backend project's `compose.yaml` and README. Compose builds this frontend into Nginx, serves it on port 3000, and proxies `/api` to the private backend. Use the Settings menu to import names and drinks and inspect Sheets sync status. Log in there to select the shared paid/unpaid night mode. On unpaid nights, the **Arved** page shows the complete email preview and separate sending confirmation.

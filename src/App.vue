@@ -13,6 +13,8 @@ const mainStore = useMainStore();
 onMounted(() => {
   // Start connection check when app mounts
   mainStore.startConnectionCheck();
+  mainStore.loadMode().catch(console.error);
+  mainStore.checkOrganizer();
 });
 
 onUnmounted(() => {
