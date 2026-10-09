@@ -33,9 +33,9 @@ export type BarRequest = {
 
 export type LogItem = {
   timestamp: string,
-  order_id: string,
-  customer_name: string,
-  drink_name: string,
+  orderId: string,
+  customerName: string,
+  drinkName: string,
   quantity: number,
-  cancellation_timestamp?: string,
+  cancellationTimestamp?: string,
 }

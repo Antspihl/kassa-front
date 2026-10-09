@@ -253,9 +253,9 @@ export const useMainStore = defineStore('main', {
       try {
         const response = await axios.get(API_URL + "/orders");
         this.orders = response.data.map((item: any): Order => ({
-            id: item.order_id || item.id,
-            drink: item.drink_name || item.drink,
-            name: item.customer_name || item.customer,
+            id: item.orderId || item.order_id || item.id,
+            drink: item.drinkName || item.drink_name || item.drink,
+            name: item.customerName || item.customer_name || item.customer,
             amount: item.quantity,
             isSent: true,
           })).reverse();
@@ -287,7 +287,7 @@ export const useMainStore = defineStore('main', {
     async getLogs() {
       try {
         this.isFetchingLogs = true;
-        const response = await axios.get(API_URL + "/admin/logs");
+      const response = await axios.get(API_URL + "/admin/logs");
         this.logs = response.data || [];
         this.isFetchingLogs = false;
         return this.logs;
@@ -498,7 +498,7 @@ export const useMainStore = defineStore('main', {
       }
 
       try {
-        const response = await axios.post(API_URL + "/order/cancel", {order_id: order.id}, {headers: API_HEADERS});
+        const response = await axios.post(API_URL + "/order/cancel", {orderId: order.id}, {headers: API_HEADERS});
         if (response.status === 200 && response.data && response.data.cancelled) {
           this.removeFromOrders(order);
           showSuccessToast("Tellimus tühistatud:\n" + order.name + ": " + order.amount + "x" + order.drink);
@@ -537,11 +537,10 @@ export const useMainStore = defineStore('main', {
       const edited = {...editedOrder};
       console.log("Changing order from", old, "to", edited);
       const payload = {
-        old_order_id: old.id,
-        new_order_id: edited.id,
+        oldOrderId: old.id,
         order: {
-          customer_name: edited.name,
-          drink_name: edited.drink,
+          customerName: edited.name,
+          drinkName: edited.drink,
           quantity: edited.amount,
         }
       }
@@ -549,7 +548,7 @@ export const useMainStore = defineStore('main', {
       try {
         const response = await axios.put(API_URL + "/order", payload, {headers: API_HEADERS});
         if (response.status === 200 && response.data && (response.data.updated || response.data.success)) {
-          const newOrderId = response.data.new_order_id || edited.id;
+          const newOrderId = response.data.newOrderId || response.data.new_order_id || edited.id;
           const idx = this.orders.findIndex(o => o.id === old.id);
           const updatedOrder: Order = {
             id: newOrderId,
@@ -595,9 +594,9 @@ export const useMainStore = defineStore('main', {
       }
     },
 
-    async adminCancelLog(order_id: string) {
+    async adminCancelLog(orderId: string) {
       try {
-        await axios.post(API_URL + "/order/cancel", {order_id}, {headers: API_HEADERS});
+        await axios.post(API_URL + "/order/cancel", {orderId}, {headers: API_HEADERS});
         showSuccessToast('Tellimus tühistatud (admin)');
         await this.getLogs();
       } catch (error) {

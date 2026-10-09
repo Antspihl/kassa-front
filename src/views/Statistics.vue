@@ -113,7 +113,7 @@ const totalDrinksSold = computed(() => {
 const spendersChartData = computed(() => {
   const sortedBills = [...bills.value]
     .sort((a, b) => Number.parseFloat(b.bill) - Number.parseFloat(a.bill))
-    .filter(c => c.name.split(' ').length >= 2)
+    .filter(c => typeof c.name === 'string' && c.name.trim().split(/\s+/).length >= 2)
     .slice(0, 5);
 
   return {

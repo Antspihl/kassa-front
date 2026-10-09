@@ -6,9 +6,9 @@
       <v-btn class="my-3" @click="store.getLogs()">Värskenda logi</v-btn>
       <v-data-table :headers="headers" :items="store.logs" :loading="store.isFetchingLogs" :items-per-page="10">
         <template #item.timestamp="{ value }">{{ formatTimestamp(value) }}</template>
-        <template #item.cancellation_timestamp="{ value }">{{ formatTimestamp(value) }}</template>
+        <template #item.cancellationTimestamp="{ value }">{{ formatTimestamp(value) }}</template>
         <template #item.actions="{ item }">
-          <div v-if="!item.cancellation_timestamp">
+          <div v-if="!item.cancellationTimestamp">
             <EditDialog :order="mapLogToOrder(item)"/>
             <v-btn icon="mdi-close" color="accent" size="small" @click="onCancel(item)"/>
           </div>
@@ -27,11 +27,11 @@ import type {LogItem, Order} from '@/molecules/types';
 const store = useMainStore();
 const headers = [
   {title: 'Aeg', key: 'timestamp'},
-  {title: 'Tellimus ID', key: 'order_id'},
-  {title: 'Klient', key: 'customer_name'},
-  {title: 'Jook', key: 'drink_name'},
+  {title: 'Tellimus ID', key: 'orderId'},
+  {title: 'Klient', key: 'customerName'},
+  {title: 'Jook', key: 'drinkName'},
   {title: 'Kogus', key: 'quantity'},
-  {title: 'Tühistamise aeg', key: 'cancellation_timestamp'},
+  {title: 'Tühistamise aeg', key: 'cancellationTimestamp'},
   {title: 'Tegevused', key: 'actions', sortable: false},
 ];
 function formatTimestamp(value?: string | null): string {
@@ -42,11 +42,11 @@ function formatTimestamp(value?: string | null): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 }
 function mapLogToOrder(item: LogItem): Order {
-  return {id: item.order_id, drink: item.drink_name, name: item.customer_name, amount: Number(item.quantity), isSent: true};
+  return {id: item.orderId, drink: item.drinkName, name: item.customerName, amount: Number(item.quantity), isSent: true};
 }
 async function onCancel(item: LogItem) {
-  if (!confirm(`Tühistada tellimus ${item.order_id}?`)) return;
-  await store.adminCancelLog(item.order_id);
+  if (!confirm(`Tühistada tellimus ${item.orderId}?`)) return;
+  await store.adminCancelLog(item.orderId);
   await store.getLogs();
 }
 onMounted(async () => { await store.checkOrganizer(); if (store.isOrganizer) await store.getLogs(); });
