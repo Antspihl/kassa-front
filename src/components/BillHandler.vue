@@ -13,7 +13,10 @@
 
     <v-alert v-if="store.mode === 'paid'" type="info" class="mt-5">Selle õhtu tellimused tasuti kohapeal. E-posti arveid ei saadeta.</v-alert>
     <v-alert v-else-if="!store.isOrganizer" type="info" class="mt-5">Arvete saatmiseks logi seadete menüüs korraldajana sisse.</v-alert>
-    <v-btn v-else-if="store.mode === 'unpaid'" color="primary" class="mt-5" @click="openMailDialog">Koosta ja saada e-kirju</v-btn>
+    <div v-else-if="store.mode === 'unpaid'" class="d-flex flex-wrap ga-2 mt-5">
+      <v-btn color="primary" @click="openMailDialog">Koosta ja saada e-kirju</v-btn>
+      <v-btn color="primary" @click="copyPayersTable">Maksjate tabel</v-btn>
+    </div>
 
     <v-dialog v-model="mailDialog" max-width="900" :persistent="busy" scrollable>
       <v-card>
@@ -107,6 +110,7 @@
 <script setup lang="ts">
 import axios from 'axios';
 import {computed, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue';
+import {useToast} from 'vue-toastification';
 import {API_URL, useMainStore} from '@/api/MainStore';
 
 type Bill = {name: string; bill: string; drinks: Record<string, number>};
@@ -115,6 +119,7 @@ type Preview = {id: string; messages: Message[]; skipped: {name: string; reason:
 type Status = {id: string; name: string; recipient: string; status: string; error?: string};
 type Run = {preview_id: string; kind: string; recipients: number; last_sent_at?: string; pending: number; failed: number; unknown: number};
 const store = useMainStore();
+const toast = useToast();
 const bills = ref<Bill[]>([]);
 const search = ref('');
 const kind = ref<'initial' | 'reminder'>('initial');
@@ -145,6 +150,41 @@ const currentMessage = computed(() => preview.value?.messages[reviewIndex.value]
 const allReviewed = computed(() => !!preview.value && preview.value.messages.length > 0 && preview.value.messages.every(m => reviewedIds.value.includes(m.id)));
 
 function resetPreview() { preview.value = null; reviewedIds.value = []; reviewIndex.value = 0; confirmation.value = ''; }
+function copyFallback(text: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textarea);
+  if (!copied) throw new Error('Clipboard copy failed');
+}
+async function copyPayersTable() {
+  if (!bills.value.length) {
+    toast.error('Maksjate tabel on tühi');
+    return;
+  }
+  const text = bills.value.map(bill => {
+    const amount = Number(bill.bill);
+    const formattedAmount = Number.isFinite(amount)
+      ? `${Number.isInteger(amount) ? amount : amount.toFixed(2)}€`
+      : `${bill.bill}€`;
+    return `${bill.name}, ${formattedAmount},`;
+  }).join('\n');
+  try {
+    if (navigator.clipboard?.writeText) {
+      try { await navigator.clipboard.writeText(text); }
+      catch { copyFallback(text); }
+    } else copyFallback(text);
+    toast.success('Maksjate tabel kopeeritud lõikelauale');
+  } catch {
+    toast.error('Lõikelauale kopeerimine ebaõnnestus');
+  }
+}
 function openMailDialog() {
   error.value = '';
   mailStep.value = 'compose';
